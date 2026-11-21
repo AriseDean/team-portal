@@ -334,3 +334,28 @@ If a provider only offers the blocked ports, it can't be used from a DigitalOcea
 
 **Using your own dedicated server instead?** Possible, but I wouldn't: you'd need working SPF/DKIM/reverse-DNS and a clean IP to stay out of spam, and the
 Droplet still couldn't reach your server on port 25/587. A relay is simpler and more reliable.
+
+---
+
+## D. How uploads are protected (and the optional virus scan)
+
+Every report goes through these checks **before** it is stored: extension (.pdf/.doc/.docx only), size limit (also capped at 25 MB by the proxy),
+real file contents (not just the extension), and a rejection of risky content: PDFs with scripts, launch actions or embedded files; Word files with
+macros, embedded objects or programs; zip bombs. Files are saved under a server-generated name (never the student's filename), in a private folder
+outside any web-served path with restrictive permissions, and only staff can download them (as attachments, with `nosniff`). All database access
+goes through Django's ORM, which sends parameterised queries (there is no hand-written SQL taking user input), and CSV exports neutralise
+spreadsheet formulas (`=`, `+`, `-`, `@`).
+
+These checks are best-effort. A **virus scanner** adds a real signature check. To turn on ClamAV (needs about 1.5 GB free RAM, so use a 2 GB+ droplet):
+
+```bash
+# in .env
+CLAMAV_HOST=clamav
+CLAMAV_REQUIRED=1        # refuse uploads if the scanner is down (0 = accept them unscanned)
+
+docker compose --profile caddy --profile av up -d --build
+docker compose logs -f clamav       # wait until the signature database has loaded (a few minutes on first start)
+```
+
+Test it by uploading the harmless EICAR test string saved as a `.pdf` (begin the file with `%PDF-1.4` on its own line): it should be refused.
+Whoever opens the reports (you, TAs) should still keep their own computer's antivirus on and avoid enabling macros or editing mode on files from unknown senders.

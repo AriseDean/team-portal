@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 
-from . import security
+from . import antivirus, security
 from .models import AuditLog, Extension, Submission, Upload
 from .validators import validate_report_file
 
@@ -61,6 +61,7 @@ def save_report(milestone, team, member, uploaded):
         raise SubmissionError("The submission deadline has passed. Contact your instructor if you need an extension.")
 
     ext = validate_report_file(uploaded, milestone.max_file_mb)  # raises ValidationError
+    antivirus.scan(uploaded)                                      # no-op unless CLAMAV_HOST is set
 
     sha = hashlib.sha256()
     for chunk in uploaded.chunks():

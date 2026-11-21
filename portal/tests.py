@@ -795,3 +795,69 @@ class BatchOrderTests(PortalCase):
         from .forms import MemberForm
         names = [b.name for b in MemberForm().fields["batch"].queryset]
         self.assertEqual(names, ["B1", "B2", "B10"])
+
+
+class UploadHardeningTests(TestCase):
+    def _f(self, name, data):
+        return SimpleUploadedFile(name, data)
+
+    def _docx(self, extra=None, content_types=b"<Types/>"):
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("[Content_Types].xml", content_types)
+            zf.writestr("word/document.xml", "<w/>")
+            for n in (extra or []):
+                zf.writestr(n, "x")
+        return buf.getvalue()
+
+    def test_clean_files_pass(self):
+        from django.core.exceptions import ValidationError
+        from .validators import validate_report_file
+        self.assertEqual(validate_report_file(self._f("a.pdf", b"%PDF-1.7\n1 0 obj<</Type/Page>>endobj\n%%EOF"), 5), ".pdf")
+        self.assertEqual(validate_report_file(self._f("a.docx", self._docx()), 5), ".docx")
+        self.assertEqual(validate_report_file(self._f("a.doc", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"x" * 100), 5), ".doc")
+
+    def test_dangerous_files_rejected(self):
+        from django.core.exceptions import ValidationError
+        from .validators import validate_report_file
+        bad = [
+            ("a.pdf", b"%PDF-1.7\n1 0 obj<</S/JavaScript/JS(app.alert(1))>>endobj"),
+            ("a.pdf", b"%PDF-1.7\n<</Type/Filespec/EF<</F 2 0 R>>/Subtype/EmbeddedFile>>"),
+            ("a.pdf", b"MZ\x90\x00 not a pdf"),
+            ("a.docx", self._docx(["word/vbaProject.bin"])),
+            ("a.docx", self._docx(["word/embeddings/oleObject1.bin"])),
+            ("a.docx", self._docx(content_types=b"<Types>application/vnd.ms-word.document.macroEnabled.main+xml</Types>")),
+            ("a.doc", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + "_VBA_PROJECT".encode("utf-16-le")),
+            ("a.exe", b"MZ"),
+            ("a.pdf.exe", b"%PDF-1.4"),
+            ("a.docx", b"PK\x03\x04 garbage"),
+        ]
+        for name, data in bad:
+            with self.assertRaises(ValidationError, msg=name):
+                validate_report_file(self._f(name, data), 5)
+
+    def test_antivirus(self):
+        from unittest import mock
+        from django.core.exceptions import ValidationError
+        from . import antivirus
+        f = self._f("a.pdf", b"%PDF-1.4")
+        with override_settings(CLAMAV_HOST=""):
+            antivirus.scan(f)  # disabled: no-op
+        with override_settings(CLAMAV_HOST="clamav", CLAMAV_REQUIRED=True):
+            with mock.patch.object(antivirus, "_instream", return_value="stream: OK"):
+                antivirus.scan(f)
+            with mock.patch.object(antivirus, "_instream", return_value="stream: Eicar-Test-Signature FOUND"):
+                with self.assertRaises(ValidationError):
+                    antivirus.scan(f)
+            with mock.patch.object(antivirus, "_instream", side_effect=OSError("down")):
+                with self.assertRaises(ValidationError):
+                    antivirus.scan(f)
+        with override_settings(CLAMAV_HOST="clamav", CLAMAV_REQUIRED=False):
+            with mock.patch.object(antivirus, "_instream", side_effect=OSError("down")):
+                antivirus.scan(f)  # fail-open when not required
+
+    def test_csv_formula_injection_neutralised(self):
+        from .exports import safe_cell
+        self.assertEqual(safe_cell("=HYPERLINK(\"x\")"), "'=HYPERLINK(\"x\")")
+        self.assertEqual(safe_cell("@SUM(A1)"), "'@SUM(A1)")
+        self.assertEqual(safe_cell("Alpha"), "Alpha")

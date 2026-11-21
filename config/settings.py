@@ -133,6 +133,13 @@ if DEBUG:
 MEDIA_ROOT = DATA_DIR / "uploads"
 MEDIA_URL = None
 FILE_UPLOAD_PERMISSIONS = 0o640
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o750
+
+# Optional ClamAV virus scan of every upload (see SETUP.md). Off while CLAMAV_HOST is empty.
+CLAMAV_HOST = env("CLAMAV_HOST", "")
+CLAMAV_PORT = int(env("CLAMAV_PORT", "3310"))
+CLAMAV_TIMEOUT = int(env("CLAMAV_TIMEOUT", "30"))
+CLAMAV_REQUIRED = env_bool("CLAMAV_REQUIRED", True)   # True: reject uploads if the scanner can't be reached
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # form fields only; files are streamed to disk
 FILE_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024 * 1024
 

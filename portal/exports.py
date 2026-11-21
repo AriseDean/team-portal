@@ -8,11 +8,18 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
+def safe_cell(value):
+    """Stop spreadsheet formula injection: a cell starting with = + - @ would be run by Excel."""
+    if isinstance(value, str) and value[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        return "'" + value
+    return value
+
+
 def csv_response(filename, header, rows):
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(header)
-    writer.writerows(rows)
+    writer.writerows([safe_cell(c) for c in row] for row in rows)
     response = HttpResponse("﻿" + buf.getvalue(), content_type="text/csv; charset=utf-8")  # BOM: opens cleanly in Excel
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
@@ -35,7 +42,7 @@ def zip_response(filename, uploads):
                 timezone.localtime(up.uploaded_at).strftime("%Y-%m-%d %H:%M"), "yes" if up.is_late else "",
             ])
         out = io.StringIO()
-        csv.writer(out).writerows(manifest)
+        csv.writer(out).writerows([safe_cell(c) for c in row] for row in manifest)
         zf.writestr("_manifest.csv", "﻿" + out.getvalue())
     tmp.seek(0)
     return FileResponse(tmp, as_attachment=True, filename=filename, content_type="application/zip")

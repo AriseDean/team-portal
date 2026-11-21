@@ -27,7 +27,17 @@ services:
       - caddy_data:/data
       - caddy_config:/config
 
+  # Optional virus scanner for uploads. Start with:  docker compose --profile av up -d
+  # and set CLAMAV_HOST=clamav in .env. Needs roughly 1.5 GB of free RAM.
+  clamav:
+    image: clamav/clamav:stable
+    profiles: ["av"]
+    restart: unless-stopped
+    volumes:
+      - clamav_db:/var/lib/clamav
+
 volumes:
+  clamav_db:
   portal_data:
   caddy_data:
   caddy_config:
