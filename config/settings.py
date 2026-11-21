@@ -176,6 +176,13 @@ EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "Team Portal <noreply@example.com>")
+# Never let a blocked/slow mail server hang a student's request.
+EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "10"))
+# Send in a background thread so pages stay fast (set 0 to send inside the request).
+EMAIL_ASYNC = env_bool("EMAIL_ASYNC", True)
+# "all" = every team member gets team emails; "leader" = only the team leader (halves/quarters volume
+# on free email plans with a daily cap).
+EMAIL_RECIPIENTS = env("EMAIL_RECIPIENTS", "all").lower()
 
 LOGGING = {
     "version": 1,

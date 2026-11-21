@@ -145,7 +145,7 @@ class MilestoneAdmin(admin.ModelAdmin):
         sent = 0
         for team in Team.objects.exclude(pk__in=done).prefetch_related("members"):
             sent += bool(emails.send_reminder(team, m, effective_deadline(m, team), request))
-        self.message_user(request, f"Reminder sent to {sent} team(s).")
+        self.message_user(request, f"Reminder queued for {sent} team(s).")
 
 
 # --- Teams ------------------------------------------------------------------------------
@@ -273,7 +273,7 @@ class TeamAdmin(admin.ModelAdmin):
             bool(emails.send_reminder(t, milestone, effective_deadline(milestone, t), request))
             for t in queryset if t.pk not in done
         )
-        self.message_user(request, f"Reminder sent to {sent} team(s) that haven't submitted.")
+        self.message_user(request, f"Reminder queued for {sent} team(s) that haven't submitted.")
 
     @admin.action(description="Export members (CSV)")
     def export_members(self, request, queryset):

@@ -44,7 +44,7 @@ def reg_post(team_name, members, leader=0):
     return data
 
 
-@override_settings(CACHES=LOCMEM, MEDIA_ROOT=TMP_MEDIA, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+@override_settings(CACHES=LOCMEM, MEDIA_ROOT=TMP_MEDIA, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", EMAIL_ASYNC=False, EMAIL_RECIPIENTS="all",
                    TRUST_PROXY=False, STORAGES={
                        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
                        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}})
@@ -605,3 +605,40 @@ class SeedDemoTests(PortalCase):
         self.assertEqual(Submission.objects.count(), 3)
         call_command("seed_demo", "--force", "--clear", stdout=io.StringIO())
         self.assertFalse(Team.objects.exists())
+
+
+class EmailBehaviourTests(PortalCase):
+    @override_settings(EMAIL_RECIPIENTS="leader")
+    def test_leader_only_mode_sends_one_email_per_team_event(self):
+        team, pin = self.register("Alpha", (1, 2, 3), leader=1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["s2@example.com"])
+        mail.outbox.clear()
+        self.verify(team)
+        self.upload("E2100001")
+        self.assertEqual([m.to for m in mail.outbox], [["s2@example.com"]])
+
+    @override_settings(EMAIL_BACKEND="portal.tests.BrokenBackend")
+    def test_mail_failure_never_breaks_the_student_flow_and_is_logged(self):
+        team, pin = self.register("Alpha", (1,))
+        self.assertTrue(Team.objects.filter(name="Alpha").exists())
+        from .models import AuditLog
+        self.assertTrue(AuditLog.objects.filter(action="email_failed").exists())
+
+    @override_settings(EMAIL_ASYNC=True)
+    def test_async_mode_delivers_in_background(self):
+        import time
+        self.register("Alpha", (1,))
+        for _ in range(50):
+            if mail.outbox:
+                break
+            time.sleep(0.1)
+        self.assertEqual(len(mail.outbox), 1)
+
+
+from django.core.mail.backends.base import BaseEmailBackend  # noqa: E402
+
+
+class BrokenBackend(BaseEmailBackend):
+    def send_messages(self, email_messages):
+        raise OSError("connection timed out")

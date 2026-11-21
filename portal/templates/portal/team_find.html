@@ -4,10 +4,10 @@
 <div class="narrow stack">
   <h1 style="font-size:2.4rem">Lost your Team ID or PIN?</h1>
   {% if sent %}
-    <div class="alert ok"><strong>Check your inbox.</strong> If those details match a registered team, we've emailed the Team ID and a <strong>new PIN</strong> to <em>every member</em> of the team. The old PIN no longer works. (It can take a minute.)</div>
+    <div class="alert ok"><strong>Check your inbox.</strong> If those details match a registered team, we've emailed the Team ID and a <strong>new PIN</strong> to {% if email_all %}<em>every member</em> of the team{% else %}the <em>team leader</em>{% endif %}. The old PIN no longer works. (It can take a minute.)</div>
     <a class="btn" href="{% url 'submit_lookup' %}">Go to submission</a>
   {% else %}
-  <p class="muted">Enter your enrolment number and the email you registered with. We'll email the Team ID and a <strong>new PIN</strong> to all members of your team.</p>
+  <p class="muted">Enter your enrolment number and the email you registered with. We'll email the Team ID and a <strong>new PIN</strong> to {% if email_all %}all members of your team{% else %}your team leader{% endif %}.</p>
   <form method="post" class="card" data-once novalidate>
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert danger">{{ form.non_field_errors.0 }}</div>{% endif %}

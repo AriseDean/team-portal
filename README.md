@@ -48,7 +48,8 @@ The effective deadline for an upload is the **latest** of: milestone deadline, t
 ## Configuration
 
 All via environment variables — see `.env.example`. The important ones: `SECRET_KEY`, `ALLOWED_HOSTS`,
-`CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `TEAM_ID_PREFIX`, `ENROLMENT_REGEX`, `ALLOWED_EMAIL_DOMAINS`, `EMAIL_*`.
+`CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `TEAM_ID_PREFIX`, `ENROLMENT_REGEX`, `ALLOWED_EMAIL_DOMAINS`, `EMAIL_*`
+(including `EMAIL_RECIPIENTS=leader` to keep volume low on free email plans). On DigitalOcean see the email section of [SETUP.md](SETUP.md): SMTP ports 25/465/587 are blocked there.
 Without `EMAIL_*`, emails are printed to the container log (`docker compose logs web`).
 
 ## Design notes

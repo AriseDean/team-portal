@@ -11,6 +11,6 @@
     <div class="field"><label for="{{ form.pin.id_for_label }}">Team PIN</label>{{ form.pin }}{% for e in form.pin.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
     <button class="btn primary block" type="submit" data-busy-text="Checking…">Continue</button>
   </form>
-  <p class="muted small"><a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a> We'll email a new one to the whole team.</p>
+  <p class="muted small"><a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a> We'll email a new one to {% if email_all %}the whole team{% else %}the team leader{% endif %}.</p>
 </div>
 {% endblock %}
