@@ -88,6 +88,26 @@ docker compose down              # stop (data is kept)   |   docker compose down
 - Ports **80 and 443** reachable. If something else already uses them, use your existing reverse proxy (option B below).
 - Nothing else: email is switched off by default (see *Optional: turn email on later* at the end if you want it).
 
+### 0. Fresh DigitalOcean droplet (skip if your server is already set up)
+
+Create a droplet with **Ubuntu 24.04 LTS**, Basic / Regular, 1 vCPU and 2 GB RAM, the region nearest your users, and an **SSH key**
+(not a password). Enable weekly backups. Do not use a "Django"/OpenLiteSpeed marketplace image: this project brings its own web server in Docker.
+
+1. **DNS first:** add an `A` record `teams.example.com` pointing at the droplet's IP. (If the domain is on Cloudflare, see *Cloudflare* below.)
+2. **Non-root user and updates:**
+   ```bash
+   ssh root@DROPLET_IP
+   apt update && apt -y upgrade
+   adduser deploy && usermod -aG sudo deploy
+   rsync --archive --chown=deploy:deploy ~/.ssh /home/deploy
+   ```
+   Open a new terminal and confirm `ssh deploy@DROPLET_IP` works before going on.
+3. **Firewall:**
+   ```bash
+   sudo ufw allow OpenSSH && sudo ufw allow 80,443/tcp && sudo ufw enable
+   ```
+   Then continue with steps 1 to 8 below, running everything as `deploy`.
+
 ### 1. Install Docker (once)
 
 On Ubuntu/Debian:
@@ -118,7 +138,7 @@ Fill in at least these (everything else has sensible defaults; email stays off):
 
 | Setting | Value |
 |---|---|
-| `SECRET_KEY` | A long random string: `openssl rand -base64 48` |
+| `SECRET_KEY` | A long random string: `openssl rand -base64 48`. Django signs sessions, the admin login and form (CSRF) tokens with it. Keep it private; changing it later logs everyone out and invalidates open forms (data is unaffected). |
 | `ALLOWED_HOSTS` | `teams.example.com` |
 | `CSRF_TRUSTED_ORIGINS` | `https://teams.example.com` (include `https://`) |
 | `SITE_URL` | `https://teams.example.com` |
@@ -238,6 +258,12 @@ docker compose start web
 **After the course.** Download the ZIP and CSVs you need, then delete the data (Admin → Teams → select all → delete, or
 `docker compose down -v` to wipe the whole volume). The portal holds students' phone numbers and emails, so don't keep it longer than needed.
 
+### Cloudflare in front of the site
+
+If the domain's DNS is on Cloudflare (orange cloud = proxied): set **SSL/TLS to "Full (strict)"** ("Flexible" causes redirect loops). If the
+bundled Caddy can't get its certificate while proxied, set the record to **DNS only** (grey cloud) until it has one, then turn the proxy back on.
+A `502` from Cloudflare means your server isn't answering: check `docker compose ps` and `docker compose logs --tail 60 web`.
+
 ### Troubleshooting
 
 | Symptom | Cause / fix |
@@ -248,6 +274,7 @@ docker compose start web
 | Upload fails with "413 Request Entity Too Large" | Your proxy's body limit: nginx `client_max_body_size 25m;` (bundled Caddy already allows 25 MB). |
 | Page has no styling | The image is stale: `docker compose up -d --build`. |
 | Container keeps restarting | `docker compose logs web`. Usually a missing `SECRET_KEY`. |
+| Web container restarts, log says `Permission denied ... staticfiles.json` | Use the current Dockerfile (it hands `/app/staticfiles` to the app user), then `docker compose --profile caddy up -d --build`. |
 | Emails not arriving | Email is off unless `EMAIL_ENABLED=1`. If you turned it on, see *Optional: turn email on later* (DigitalOcean blocks ports 25/465/587; use 2525). |
 | Everyone shows the same IP / "too many attempts" | Behind a proxy set `TRUST_PROXY=1` and make sure the proxy sends `X-Forwarded-For`. |
 | Port 8000 already in use | Set `PORT=8001` in `.env`, then update your proxy to match. |

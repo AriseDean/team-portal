@@ -13,7 +13,9 @@ RUN SECRET_KEY=build-only DATA_DIR=/tmp/build python manage.py collectstatic --n
  && rm -rf /tmp/build \
  && chmod +x docker-entrypoint.sh \
  && useradd --create-home --uid 10001 app \
- && mkdir -p /data && chown app:app /data
+ && mkdir -p /data && chown app:app /data \
+ && chown -R app:app /app/staticfiles \
+ && chmod -R u+rwX,go+rX /app/staticfiles
 
 USER app
 VOLUME ["/data"]
