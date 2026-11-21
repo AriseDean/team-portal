@@ -7,7 +7,9 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.html import format_html
 
-from . import emails, ids
+from django.conf import settings
+
+from . import emails, ids, security
 from .exports import csv_response, zip_response
 from .models import (
     AuditLog,
@@ -60,6 +62,12 @@ class MilestoneAdmin(admin.ModelAdmin):
         "extend_all_1_day", "extend_all_2_days", "extend_all_1_week",
         "download_reports", "export_status", "remind_pending",
     ]
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not settings.EMAIL_ENABLED:
+            actions.pop("remind_pending", None)
+        return actions
 
     @admin.display(description="Deadline")
     def deadline_local(self, obj):
@@ -201,6 +209,12 @@ class TeamAdmin(admin.ModelAdmin):
     actions = ["grant_extension", "reset_pin", "remind", "export_members"]
     list_per_page = 50
 
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not settings.EMAIL_ENABLED:
+            actions.pop("remind", None)
+        return actions
+
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("members__batch", "submissions")
 
@@ -253,14 +267,17 @@ class TeamAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         })
 
-    @admin.action(description="Reset team PIN (and email the team)")
+    @admin.action(description="Reset team PIN (the new PIN is shown on screen)")
     def reset_pin(self, request, queryset):
         for team in queryset:
             pin = ids.generate_pin()
             team.set_pin(pin)
             team.save(update_fields=["pin_hash", "updated_at"])
-            emails.send_pin_reset(team, pin, request)
-            self.message_user(request, f"{team.team_id}: new PIN {pin}")
+            security.clear(f"pin:{team.pk}")  # also lifts any "too many wrong PINs" lockout
+            emails.send_pin_reset(team, pin, request)  # no-op while EMAIL_ENABLED is off
+            AuditLog.objects.create(action="pin_reset_by_admin", team=team, team_label=team.team_id,
+                                    detail=f"by {request.user.get_username()}")
+            self.message_user(request, f"{team.name} ({team.team_id}): new PIN is {pin}", messages.SUCCESS)
 
     @admin.action(description="Email a submission reminder")
     def remind(self, request, queryset):

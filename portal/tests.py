@@ -44,7 +44,7 @@ def reg_post(team_name, members, leader=0):
     return data
 
 
-@override_settings(CACHES=LOCMEM, MEDIA_ROOT=TMP_MEDIA, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", EMAIL_ASYNC=False, EMAIL_RECIPIENTS="all",
+@override_settings(CACHES=LOCMEM, MEDIA_ROOT=TMP_MEDIA, EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend", EMAIL_ASYNC=False, EMAIL_RECIPIENTS="all", EMAIL_ENABLED=True,
                    TRUST_PROXY=False, STORAGES={
                        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
                        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}})
@@ -642,3 +642,99 @@ from django.core.mail.backends.base import BaseEmailBackend  # noqa: E402
 class BrokenBackend(BaseEmailBackend):
     def send_messages(self, email_messages):
         raise OSError("connection timed out")
+
+
+@override_settings(EMAIL_ENABLED=False)
+class EmailDisabledTests(PortalCase):
+    """The default configuration: no email at all; the instructor resets PINs in the admin."""
+
+    def test_nothing_is_ever_emailed(self):
+        team, pin = self.register("Alpha", (1, 2))
+        self.verify(team)
+        self.upload("E2100001")
+        self.assertEqual(mail.outbox, [])
+        from .models import AuditLog
+        self.assertFalse(AuditLog.objects.filter(action="email_failed").exists())
+
+    def test_registration_page_explains_and_offers_a_download(self):
+        team, pin = self.register("Alpha", (1, 2), leader=1)
+        page = self.client.get(reverse("register_done"))
+        self.assertContains(page, "send these by email")
+        self.assertNotContains(page, "has also been emailed")
+        card = self.client.get(reverse("register_card"))
+        self.assertEqual(card.status_code, 200)
+        self.assertIn("attachment", card["Content-Disposition"])
+        text = card.content.decode()
+        self.assertIn(team.team_id, text)
+        self.assertIn(pin, text)
+        self.assertIn("Student 2", text)
+
+    def test_card_download_needs_a_fresh_registration_in_this_session(self):
+        self.assertEqual(self.client_class().get(reverse("register_card")).status_code, 302)
+
+    def test_lost_pin_page_points_to_the_instructor_and_cannot_reset(self):
+        team, pin = self.register("Alpha", (1,))
+        page = self.client.get(reverse("team_find"))
+        self.assertContains(page, "Ask your instructor")
+        resp = self.client.post(reverse("team_find"), {"enrolment": "E2100001", "email": "s1@example.com"})
+        self.assertContains(resp, "Ask your instructor")
+        team.refresh_from_db()
+        self.assertTrue(team.check_pin(pin))
+        self.assertEqual(mail.outbox, [])
+
+    def test_wrong_pin_and_lockout_messages_mention_the_instructor(self):
+        team, pin = self.register("Alpha", (1,))
+        wrong = "000000" if pin != "000000" else "111111"
+        r = self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": wrong})
+        self.assertContains(r, "Ask your instructor to reset it")
+        for _ in range(10):
+            self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": wrong})
+        r = self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": pin})
+        self.assertContains(r, "locked")
+        self.assertContains(r, "Ask your instructor to reset your PIN")
+
+    def test_admin_pin_reset_shows_pin_and_lifts_lockout(self):
+        team, pin = self.register("Alpha", (1, 2))
+        wrong = "000000" if pin != "000000" else "111111"
+        for _ in range(10):
+            self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": wrong})
+        staff = get_user_model().objects.create_superuser("root", "r@example.com", "pw-for-tests-123")
+        admin_client = self.client_class()
+        admin_client.force_login(staff)
+        resp = admin_client.post(reverse("admin:portal_team_changelist"),
+                                 {"action": "reset_pin", "_selected_action": [team.pk]}, follow=True)
+        msgs = [str(m) for m in resp.context["messages"]]
+        self.assertEqual(len(msgs), 1)
+        self.assertIn(team.team_id, msgs[0])
+        new_pin = msgs[0].rsplit(" ", 1)[1]
+        self.assertTrue(len(new_pin) == 6 and new_pin.isdigit())
+        self.assertEqual(mail.outbox, [])
+        # the student can use the new PIN straight away (lockout cleared); the old one is dead
+        self.verify_with(team, new_pin)
+        other = self.client_class()
+        r = other.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": pin})
+        self.assertContains(r, "doesn&#x27;t match")
+        from .models import AuditLog
+        self.assertTrue(AuditLog.objects.filter(action="pin_reset_by_admin", team=team).exists())
+
+    def verify_with(self, team, pin):
+        resp = self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": pin})
+        self.assertRedirects(resp, reverse("submit_upload"), fetch_redirect_response=False)
+
+    def test_reminder_actions_are_hidden_while_email_is_off(self):
+        self.register("Alpha", (1,))
+        staff = get_user_model().objects.create_superuser("root", "r@example.com", "pw-for-tests-123")
+        self.client.force_login(staff)
+        for name, action in [("admin:portal_team_changelist", "remind"), ("admin:portal_milestone_changelist", "remind_pending")]:
+            choices = [c[0] for c in self.client.get(reverse(name)).context["action_form"].fields["action"].choices]
+            self.assertNotIn(action, choices, name)
+        self.assertIn("reset_pin", [c[0] for c in self.client.get(reverse("admin:portal_team_changelist")).context["action_form"].fields["action"].choices])
+
+    def test_other_pages_do_not_promise_emails(self):
+        team, pin = self.register("Alpha", (1,))
+        self.verify(team)
+        self.upload("E2100001")
+        done = self.client.get(reverse("submit_done"))
+        self.assertNotContains(done, "was emailed")
+        for name in ["home", "submit_lookup", "team_edit_login"]:
+            self.assertNotContains(self.client.get(reverse(name)), "emailed", msg_prefix=name)

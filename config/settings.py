@@ -168,7 +168,11 @@ ENROLMENT_REGEX = env("ENROLMENT_REGEX", r"^[A-Z0-9]{5,20}$")
 # Comma separated, e.g. "example.edu,students.example.edu". Empty = any domain.
 ALLOWED_EMAIL_DOMAINS = [d.lower() for d in env_list("ALLOWED_EMAIL_DOMAINS", "")]
 
-# --- Email (defaults to printing emails to the console) ----------------------
+# --- Email ------------------------------------------------------------------------
+# Off by default: students see their Team ID + PIN on screen and the instructor resets PINs
+# from the admin. All email code stays in place; set EMAIL_ENABLED=1 (and the EMAIL_* values) to use it.
+EMAIL_ENABLED = env_bool("EMAIL_ENABLED", False)
+# When enabled but no SMTP server is configured, messages are printed to the console.
 EMAIL_BACKEND = env("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
 EMAIL_HOST = env("EMAIL_HOST", "localhost")
 EMAIL_PORT = int(env("EMAIL_PORT", "587"))

@@ -36,7 +36,7 @@ def portal_stats():
     else:
         ctx["checks"].append("There is no active milestone, so students cannot submit.")
 
-    if "console" in settings.EMAIL_BACKEND:
+    if settings.EMAIL_ENABLED and "console" in settings.EMAIL_BACKEND:
         ctx["checks"].append("Email is not configured (messages are only printed to the server log). Set EMAIL_* in .env.")
     if Batch.objects.filter(is_active=True, name__regex=r"^Batch [0-9]+$").exists():
         ctx["checks"].append("Placeholder batches (“Batch 1…”) exist. Rename them under Batches.")

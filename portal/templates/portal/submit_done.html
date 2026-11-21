@@ -4,7 +4,7 @@
 <div class="narrow stack">
   <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div>
   <h1 style="font-size:2.4rem">Report received</h1>
-  <p class="muted">Your team's submission is in. A receipt was emailed to {% if email_all %}all team members{% else %}the team leader{% endif %}.</p>
+  <p class="muted">Your team's submission is in. {% if email_enabled %}A receipt was emailed to {% if email_all %}all team members{% else %}the team leader{% endif %}.{% else %}Keep this page (or a screenshot) as your receipt.{% endif %}</p>
   <div class="card">
     <dl class="facts">
       <dt>Milestone</dt><dd>{{ milestone.name }}</dd>

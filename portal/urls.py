@@ -10,6 +10,7 @@ urlpatterns = [
     path("register/review/", views.register_review, name="register_review"),
     path("register/confirm/", views.register_confirm, name="register_confirm"),
     path("register/done/", views.register_done, name="register_done"),
+    path("register/card.txt", views.register_card, name="register_card"),
     # edit / recover
     path("team/edit/login/", views.team_edit_login, name="team_edit_login"),
     path("team/edit/", views.team_edit, name="team_edit"),

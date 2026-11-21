@@ -3,7 +3,13 @@
 {% block content %}
 <div class="narrow stack">
   <h1 style="font-size:2.4rem">Lost your Team ID or PIN?</h1>
-  {% if sent %}
+  {% if not email_enabled %}
+    <div class="card stack">
+      <p style="margin:0">Ask your instructor. They can look up your Team ID and set a <strong>new PIN</strong> for your team. Tell them your <strong>team name</strong> or your <strong>enrolment number</strong>.</p>
+      <p class="muted" style="margin:0">Once the PIN is reset, the old one stops working, so share the new PIN with your teammates.{% if site.support_email %} Contact: <a href="mailto:{{ site.support_email }}">{{ site.support_email }}</a>.{% endif %}</p>
+    </div>
+    <a class="btn" href="{% url 'submit_lookup' %}">Back to submission</a>
+  {% elif sent %}
     <div class="alert ok"><strong>Check your inbox.</strong> If those details match a registered team, we've emailed the Team ID and a <strong>new PIN</strong> to {% if email_all %}<em>every member</em> of the team{% else %}the <em>team leader</em>{% endif %}. The old PIN no longer works. (It can take a minute.)</div>
     <a class="btn" href="{% url 'submit_lookup' %}">Go to submission</a>
   {% else %}

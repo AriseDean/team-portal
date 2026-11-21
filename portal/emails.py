@@ -43,6 +43,8 @@ def _deliver_in_thread(message):
 
 
 def _send(subject, body, to):
+    if not settings.EMAIL_ENABLED:
+        return False  # email feature switched off (EMAIL_ENABLED=0): do nothing
     to = sorted({e for e in to if e})
     if not to:
         return False

@@ -138,6 +138,31 @@ def register_done(request):
     return render(request, "portal/register_done.html", {"team": team, "pin": info["pin"]})
 
 
+def register_card(request):
+    """Plain-text copy of the Team ID + PIN, so students keep them even without email."""
+    info = request.session.get("registered")
+    team = Team.objects.filter(team_id=info["team_id"]).prefetch_related("members").first() if info else None
+    if not team:
+        return redirect("home")
+    lines = [
+        f"{SiteConfig.get().site_title}: team details",
+        "",
+        f"Team name : {team.name}",
+        f"Team ID   : {team.team_id}",
+        f"Team PIN  : {info['pin']}",
+        "",
+        "Members:",
+        *[f"  - {m.name} ({m.enrolment}){'  [leader]' if m.is_leader else ''}" for m in team.members.all()],
+        "",
+        "You need BOTH the Team ID and the PIN to submit your report.",
+        "Keep the PIN within your team. If it is lost, ask your instructor to reset it.",
+        request.build_absolute_uri("/"),
+    ]
+    response = HttpResponse("\n".join(lines) + "\n", content_type="text/plain; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{team.team_id}.txt"'
+    return response
+
+
 # --- Editing a team ---------------------------------------------------------------
 
 def _edit_team(request):
@@ -169,10 +194,14 @@ def _authenticate(request, raw_id, pin):
     return "bad_pin", team
 
 
-_AUTH_MESSAGES = {
-    "throttled": "Too many attempts. Please wait a few minutes and try again.",
-    "locked": "This team is temporarily locked after too many wrong PINs. Use “Lost your PIN?” to get a new one by email, or try again in an hour.",
-}
+def _auth_message(status):
+    if status == "throttled":
+        return "Too many attempts. Please wait a few minutes and try again."
+    if status == "locked":
+        how = ("Use “Lost your Team ID or PIN?” to get a new one by email"
+               if settings.EMAIL_ENABLED else "Ask your instructor to reset your PIN")
+        return f"This team is temporarily locked after too many wrong PINs. {how}, or try again in an hour."
+    return None
 
 
 def team_edit_login(request):
@@ -182,7 +211,7 @@ def team_edit_login(request):
         if status == "ok":
             request.session["edit_auth"] = {"pk": team.pk, "at": time.time()}
             return redirect("team_edit")
-        form.add_error(None, _AUTH_MESSAGES.get(status, "Team ID or PIN is incorrect."))
+        form.add_error(None, _auth_message(status) or "Team ID or PIN is incorrect.")
     return render(request, "portal/edit_login.html", {"form": form})
 
 
@@ -223,6 +252,8 @@ def team_edit_logout(request):
 # --- Find my team ---------------------------------------------------------------
 
 def team_find(request):
+    if not settings.EMAIL_ENABLED:  # no self-service recovery without email: the page explains who to ask
+        return render(request, "portal/team_find.html", {"form": None, "sent": False})
     form = RecoverForm(request.POST or None)
     sent = False
     if request.method == "POST" and form.is_valid():
@@ -274,9 +305,10 @@ def submit_lookup(request):
         elif status == "unknown":
             not_registered = True
         elif status == "bad_pin":
-            form.add_error("pin", "That PIN doesn't match this team. Use the PIN you received when registering.")
+            hint = "" if settings.EMAIL_ENABLED else " Lost it? Ask your instructor to reset it."
+            form.add_error("pin", "That PIN doesn't match this team. Use the PIN you received when registering." + hint)
         else:
-            form.add_error(None, _AUTH_MESSAGES[status])
+            form.add_error(None, _auth_message(status))
     return render(request, "portal/submit_lookup.html", {"form": form, "milestone": milestone, "not_registered": not_registered})
 
 

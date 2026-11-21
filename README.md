@@ -7,7 +7,7 @@ A small, self-hosted web app for **registering student teams** and **collecting 
 - One report per team (PDF / Word). Once any teammate uploads, the team shows as submitted — with team ID,
   name, leader and who uploaded first.
 - Deadline per milestone, with extensions for a team, a single student, or everyone.
-- Admin dashboard, CSV exports, ZIP download of all reports, reminder emails.
+- Admin dashboard, CSV exports, ZIP download of all reports, one-click PIN reset for students who lose theirs. Email (confirmations, receipts, reminders, PIN recovery) is built in but **off by default**.
 
 Built with Django + SQLite (no external services). Runs as one Docker container.
 
@@ -16,7 +16,7 @@ Built with Django + SQLite (no external services). Runs as one Docker container.
 **See [SETUP.md](SETUP.md)** for step-by-step instructions:
 
 - **Try it locally** in one command, no Docker needed: `python dev.py demo`
-- **Deploy on a server** with Docker (HTTPS, email, backups, updates, troubleshooting)
+- **Deploy on a server** with Docker (HTTPS, backups, updates, troubleshooting; email is optional)
 
 ## First-time setup in the admin
 
@@ -25,7 +25,7 @@ Log in at `/admin/`, then:
 1. **Batches** – rename the placeholder batches and set each batch's *max team size* (e.g. 5). A mixed team is limited by its strictest batch.
 2. **Milestones → Milestone 2 Report** – set the **deadline**, paste the **template link** when you have it (until then students see "Template link coming soon"), and choose whether late uploads / re-uploads are allowed.
 3. **Portal settings** – site title, course name, support email, optional banner, min team size.
-4. The dashboard shows a *setup checklist* for anything still missing (template link, email, placeholder batches).
+4. The dashboard shows a *setup checklist* for anything still missing (template link, placeholder batches).
 
 ## Running it
 
@@ -35,10 +35,10 @@ Log in at `/admin/`, then:
 | Extend for **certain teams** | Teams → select → *Grant a deadline extension to selected teams…* |
 | Extend for **one student** | Extensions → Add → enter their enrolment number |
 | See who hasn't submitted | Teams → filter *Not submitted* (also *Submitted late*) |
-| Remind them | Teams/Milestones → *Email a reminder…* |
+| Remind them | Only with email enabled: *Email a reminder…* (otherwise export the *Not submitted* list) |
 | Download everything | Milestones → *Download all reports (ZIP)* (latest versions + `_manifest.csv`) |
 | Spreadsheet of status | Milestones → *Export submission status (CSV)* |
-| Fix a team / reset a PIN | Teams → open it, or action *Reset team PIN* |
+| Fix a team / reset a PIN | Teams → open it, or tick it and use *Reset team PIN* (new PIN shown on screen) |
 | Let a team upload again | Delete its Submission (Submissions) — or leave *allow re-upload* on |
 | Next milestone | Add a Milestone and tick *Active* (only one is active; students always submit to it) |
 
@@ -48,15 +48,15 @@ The effective deadline for an upload is the **latest** of: milestone deadline, t
 ## Configuration
 
 All via environment variables — see `.env.example`. The important ones: `SECRET_KEY`, `ALLOWED_HOSTS`,
-`CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `TEAM_ID_PREFIX`, `ENROLMENT_REGEX`, `ALLOWED_EMAIL_DOMAINS`, `EMAIL_*`
-(including `EMAIL_RECIPIENTS=leader` to keep volume low on free email plans). On DigitalOcean see the email section of [SETUP.md](SETUP.md): SMTP ports 25/465/587 are blocked there.
-Without `EMAIL_*`, emails are printed to the container log (`docker compose logs web`).
+`CSRF_TRUSTED_ORIGINS`, `SITE_URL`, `TEAM_ID_PREFIX`, `ENROLMENT_REGEX`, `ALLOWED_EMAIL_DOMAINS`.
+**Email is off by default** (`EMAIL_ENABLED=0`): students see their Team ID and PIN on screen (with a download button) and you reset a lost PIN in the admin.
+To enable email later set `EMAIL_ENABLED=1` plus the `EMAIL_*` values; see the last section of [SETUP.md](SETUP.md) (DigitalOcean blocks SMTP ports 25/465/587, so use a relay on port 2525).
 
 ## Design notes
 
 - **Team IDs** look like `TM-K7M-2QX`: 5 random characters plus a check character, alphabet without look-alikes
   (0/O, 1/I/L). Single typos and swaps are rejected before the database is even queried.
-- **The PIN** (6 digits, hashed in the database) is needed to submit and to edit. 10 wrong PINs lock a team for an hour; any member can get a new PIN emailed to the whole team via “Lost your Team ID or PIN?” (once per 15 minutes).
+- **The PIN** (6 digits, hashed in the database) is needed to submit and to edit. 10 wrong PINs lock a team for an hour; a lost PIN is reset by the instructor in the admin (which also lifts the lock); with email enabled, members can request a new one themselves.
 - **Uploads** are validated by extension, size and file content, stored outside any public path, and downloadable only by staff.
   One `Submission` row per (milestone, team) is enforced by a database constraint, so simultaneous uploads can't create duplicates.
 - **Rate limiting** on lookups is deliberately generous (a campus often shares one public IP).

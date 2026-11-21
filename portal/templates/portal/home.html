@@ -43,7 +43,7 @@
 <section>
   <h2>How it works</h2>
   <ol class="steps">
-    <li><strong>Register once</strong>One person fills in the team; the Team ID and PIN are shown on screen and emailed.</li>
+    <li><strong>Register once</strong>One person fills in the team and gets the Team ID and PIN on screen. Save them and share them with your teammates.</li>
     <li><strong>Keep ID &amp; PIN safe</strong>You need both to submit, so only your team can. The PIN also lets you fix typos later.</li>
     <li><strong>Upload the report</strong>Any teammate can upload. One report per team, so one upload covers everyone.</li>
   </ol>
@@ -52,7 +52,7 @@
 <section>
   <h2>Good to know</h2>
   <details><summary>I haven't registered my team yet</summary><p>You'll need a Team ID and PIN before you can submit. <a href="{% url 'register' %}">Register first</a>, it only takes a couple of minutes.</p></details>
-  <details><summary>I lost my Team ID or PIN</summary><p>Use <a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a> Enter your enrolment number and registered email and we'll email the ID and a new PIN to the whole team.</p></details>
+  <details><summary>I lost my Team ID or PIN</summary><p>{% if email_enabled %}Use <a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a> Enter your enrolment number and registered email and we'll email the ID and a new PIN to {% if email_all %}the whole team{% else %}the team leader{% endif %}.{% else %}Ask your instructor. They can look up your Team ID and set a new PIN for your team. <a href="{% url 'team_find' %}">More details</a>.{% endif %}</p></details>
   <details><summary>A teammate already uploaded the report</summary><p>Then your team is done. When you sign in with your Team ID and PIN, you'll see who submitted and when.</p></details>
   <details><summary>I need more time</summary><p>Ask your instructor. Extensions can be granted to a single team or to everyone.</p></details>
 </section>

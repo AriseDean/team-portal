@@ -3,7 +3,7 @@
 {% block content %}
 <div class="stepper no-print"><span><i>1</i> Details</span><span class="sep"></span><span><i>2</i> Review</span><span class="sep"></span><span class="on"><i>3</i> Team ID</span></div>
 <h1 style="font-size:2.4rem">You're registered 🎉</h1>
-<p class="muted">Save your Team ID and PIN: you need <strong>both</strong> to submit your report. A copy has also been emailed to {% if email_all %}every member{% else %}the team leader{% endif %}.</p>
+<p class="muted">Save your Team ID and PIN: you need <strong>both</strong> to submit your report. {% if email_enabled %}A copy has also been emailed to {% if email_all %}every member{% else %}the team leader{% endif %}.{% else %}<strong>We don't send these by email</strong>, so save them now: copy them, download the details or print this page, and share them with your teammates.{% endif %}</p>
 
 <div class="ticket">
   <div class="main">
@@ -25,7 +25,8 @@
   <button class="btn primary" type="button" data-copy="{{ team.team_id }}">Copy Team ID</button>
   <button class="btn" type="button" data-copy="{{ pin }}">Copy PIN</button>
   <button class="btn" type="button" onclick="window.print()">Print / save as PDF</button>
+  <a class="btn" href="{% url 'register_card' %}">Download details (.txt)</a>
   <a class="btn ghost" href="{% url 'submit_lookup' %}">Submit report →</a>
 </div>
-<p class="muted small no-print" style="margin-top:1.2rem">Tip: take a screenshot too. The PIN is shown only here and in the email. If it's lost, any member can get a new one from “Lost your Team ID or PIN?”.</p>
+<p class="muted small no-print" style="margin-top:1.2rem">Tip: take a screenshot too. The PIN is shown only on this page{% if email_enabled %} and in the email{% endif %}. If it's lost, {% if email_enabled %}any member can get a new one from “Lost your Team ID or PIN?”{% else %}your instructor can reset it{% endif %}.</p>
 {% endblock %}

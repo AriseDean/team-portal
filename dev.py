@@ -51,7 +51,7 @@ def dev_env():
         ALLOWED_HOSTS="localhost,127.0.0.1",
         ADMIN_USERNAME=ADMIN_USER,
         ADMIN_PASSWORD=ADMIN_PASS,
-        # Emails are printed in this terminal instead of being sent.
+        # Email is off by default. To try it: EMAIL_ENABLED=1 python dev.py (emails print in this terminal).
         EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend",
     )
     env.pop("SECRET_KEY", None)  # DEBUG mode supplies a throw-away key
@@ -92,7 +92,7 @@ def main():
 ──────────────────────────────────────────────────────────────
   Student site : http://{HOST}:{PORT}/
   Admin        : http://{HOST}:{PORT}/admin/    login: {ADMIN_USER} / {ADMIN_PASS}
-  Emails       : printed in this terminal (nothing is really sent)
+  Email        : off (EMAIL_ENABLED=1 python dev.py prints emails here)
   Stop         : Ctrl+C        Start over: python dev.py reset
 ──────────────────────────────────────────────────────────────
 """)
