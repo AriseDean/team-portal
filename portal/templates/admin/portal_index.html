@@ -1,0 +1,6 @@
+{% extends "admin/index.html" %}
+{% load portal_extras %}
+{% block content %}
+{% portal_stats %}
+{{ block.super }}
+{% endblock %}

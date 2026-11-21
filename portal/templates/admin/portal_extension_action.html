@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<p>Milestone: <strong>{{ milestone.name }}</strong> (current deadline {{ milestone.deadline|date:"j M Y, g:i A" }}). The extension applies to every member of the selected team(s):</p>
+<ul>{% for t in teams %}<li>{{ t }}</li>{% endfor %}</ul>
+<form method="post">{% csrf_token %}
+  <input type="hidden" name="action" value="{{ action_name }}">
+  <input type="hidden" name="apply" value="1">
+  {% for pk in selected_ids %}<input type="hidden" name="_selected_action" value="{{ pk }}">{% endfor %}
+  {{ form.as_p }}
+  <p style="margin-top:12px"><input type="submit" class="default" value="Grant extension"> &nbsp; <a href="javascript:history.back()">Cancel</a></p>
+</form>
+<p class="help">To extend for <em>everyone</em>, use the milestone's “Extend deadline for EVERYONE” actions or edit its deadline. To extend for a single student, add an Extension with their enrolment number.</p>
+{% endblock %}

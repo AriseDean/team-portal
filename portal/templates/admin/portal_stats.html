@@ -1,0 +1,36 @@
+<style>
+  .ps { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin:0 0 18px; }
+  .ps .c { background:var(--body-bg,#fff); border:1px solid var(--hairline-color,#ddd); border-radius:12px; padding:14px 16px; }
+  .ps .n { font-size:30px; font-weight:700; line-height:1.1; }
+  .ps .l { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--body-quiet-color,#777); }
+  .ps .warn { color:#b45309; } .ps .ok { color:#15803d; } .ps .bad { color:#b42318; }
+  .ps-box { border:1px solid var(--hairline-color,#ddd); border-radius:12px; padding:14px 16px; margin-bottom:18px; }
+  .ps-bar { height:10px; border-radius:99px; background:var(--hairline-color,#ddd); overflow:hidden; margin:8px 0 4px; }
+  .ps-bar i { display:block; height:100%; background:#0f766e; }
+  .ps-box ul { margin:6px 0 0 18px; padding:0; }
+</style>
+<h2 style="margin-top:0">{% if milestone %}{{ milestone.name }}{% else %}Overview{% endif %}</h2>
+{% if milestone %}<p>Deadline: <strong>{{ milestone.deadline|date:"D j M Y, g:i A" }}</strong>{% if past_deadline %} <span class="bad">(passed)</span>{% endif %} · <a href="{% url 'admin:portal_milestone_change' milestone.pk %}">edit</a></p>{% endif %}
+<div class="ps">
+  <div class="c"><div class="n">{{ teams }}</div><div class="l">Teams</div></div>
+  <div class="c"><div class="n">{{ students }}</div><div class="l">Students</div></div>
+  {% if milestone %}
+  <div class="c"><div class="n ok">{{ submitted }}</div><div class="l">Submitted</div></div>
+  <div class="c"><div class="n {% if pending %}warn{% endif %}">{{ pending }}</div><div class="l">Pending</div></div>
+  <div class="c"><div class="n">{{ late }}</div><div class="l">Late</div></div>
+  <div class="c"><div class="n">{{ extensions }}</div><div class="l">Active extensions</div></div>
+  {% endif %}
+</div>
+{% if milestone %}
+<div class="ps-box"><strong>{{ pct }}% of teams have submitted</strong><div class="ps-bar"><i style="width:{{ pct }}%"></i></div>
+  <a href="{% url 'admin:portal_team_changelist' %}?report=no">Teams yet to submit →</a> · <a href="{% url 'admin:portal_team_changelist' %}?report=late">Late →</a> · <a href="{% url 'admin:portal_milestone_changelist' %}">Download reports / export CSV →</a>
+</div>
+{% if by_batch %}
+<div class="ps-box"><strong>By batch</strong>
+  <table style="width:100%;margin-top:8px"><thead><tr><th>Batch</th><th>Students</th><th>In a team that has submitted</th></tr></thead><tbody>
+  {% for b in by_batch %}<tr><td>{{ b.name }}</td><td>{{ b.students }}</td><td>{{ b.submitted_students }}</td></tr>{% endfor %}
+  </tbody></table></div>
+{% endif %}
+{% endif %}
+{% if checks %}<div class="ps-box" style="border-color:#e5b76a;background:#fff8ea;color:#5b3a00"><strong>Setup checklist</strong><ul>{% for c in checks %}<li>{{ c }}</li>{% endfor %}</ul></div>{% endif %}
+{% if recent %}<div class="ps-box"><strong>Recent activity</strong><ul>{% for a in recent %}<li>{{ a.at|date:"j M, g:i A" }} · {{ a.action }}{% if a.team_label %} · {{ a.team_label }}{% endif %}</li>{% endfor %}</ul></div>{% endif %}

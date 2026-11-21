@@ -1,0 +1,30 @@
+{% extends "portal/base.html" %}
+{% block title %}Team registered · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="stepper no-print"><span><i>1</i> Details</span><span class="sep"></span><span><i>2</i> Review</span><span class="sep"></span><span class="on"><i>3</i> Team ID</span></div>
+<h1 style="font-size:2.4rem">You're registered 🎉</h1>
+<p class="muted">Save your Team ID: you'll need it to submit your report. A copy has also been emailed to every member.</p>
+
+<div class="ticket">
+  <div class="main">
+    <div class="eyebrow" style="margin:0">Team ID</div>
+    <div class="tid" id="tid">{{ team.team_id }}</div>
+    <h2>{{ team.name }}</h2>
+    <ul>
+      {% for m in team.members.all %}<li><b>{{ m.name }}</b>{% if m.is_leader %} · Leader{% endif %} <span class="mono">{{ m.enrolment }}</span></li>{% endfor %}
+    </ul>
+  </div>
+  <div class="stub">
+    <div class="k">Edit PIN</div>
+    <div class="pin">{{ pin }}</div>
+    <div class="k" style="text-transform:none;letter-spacing:0;margin-top:.4rem">For fixing typos later</div>
+  </div>
+</div>
+
+<div class="actions no-print">
+  <button class="btn primary" type="button" data-copy="{{ team.team_id }}">Copy Team ID</button>
+  <button class="btn" type="button" onclick="window.print()">Print / save as PDF</button>
+  <a class="btn ghost" href="{% url 'submit_lookup' %}">Submit report →</a>
+</div>
+<p class="muted small no-print" style="margin-top:1.2rem">Tip: take a screenshot too. The PIN is shown only here and in the email.</p>
+{% endblock %}

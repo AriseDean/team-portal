@@ -1,0 +1,16 @@
+{% extends "portal/base.html" %}
+{% block title %}Edit team · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="narrow stack">
+  <h1 style="font-size:2.4rem">Edit your team</h1>
+  <p class="muted">Enter your Team ID and the 6-digit PIN you received when you registered.</p>
+  <form method="post" class="card" data-once novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert danger">{{ form.non_field_errors.0 }}</div>{% endif %}
+    <div class="field"><label for="{{ form.team_id.id_for_label }}">Team ID</label>{{ form.team_id }}{% for e in form.team_id.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ form.pin.id_for_label }}">Edit PIN</label>{{ form.pin }}{% for e in form.pin.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <button class="btn primary block" type="submit" data-busy-text="Checking…">Continue</button>
+  </form>
+  <p class="muted small">Lost the PIN? Ask your instructor to reset it. · <a href="{% url 'team_find' %}">Lost your Team ID?</a></p>
+</div>
+{% endblock %}

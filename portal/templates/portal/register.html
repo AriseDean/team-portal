@@ -1,0 +1,58 @@
+{% extends "portal/base.html" %}
+{% block title %}{% if mode == "edit" %}Edit team{% else %}Register a team{% endif %} · {{ site.site_title }}{% endblock %}
+{% block content %}
+{% if mode == "register" %}
+<div class="stepper"><span class="on"><i>1</i> Details</span><span class="sep"></span><span><i>2</i> Review</span><span class="sep"></span><span><i>3</i> Team ID</span></div>
+<h1 style="font-size:2.4rem">Register your team</h1>
+<p class="muted">Enter the team name and size, then fill in each member's details.</p>
+{% else %}
+<div class="eyebrow">Editing {{ team.team_id }}</div>
+<h1 style="font-size:2.4rem">Edit team details</h1>
+<p class="muted">Fix typos or update members. Your Team ID stays the same. <a href="{% url 'team_edit_logout' %}">Sign out</a></p>
+{% endif %}
+
+<form method="post" class="stack" data-once id="team-form" novalidate>
+  {% csrf_token %}
+  {% if bundle.non_field_errors %}<div class="alert danger">{% for e in bundle.non_field_errors %}<div>{{ e }}</div>{% endfor %}</div>{% endif %}
+  {% if bundle.formset.errors and bundle.is_bound and not bundle.non_field_errors %}<div class="alert danger">Please fix the highlighted fields.</div>{% endif %}
+
+  <section class="card">
+    <div class="field{% if bundle.team_form.name.errors %} has-error{% endif %}">
+      <label for="{{ bundle.team_form.name.id_for_label }}">Team name</label>
+      {{ bundle.team_form.name }}
+      {% for e in bundle.team_form.name.errors %}<p class="err">{{ e }}</p>{% endfor %}
+    </div>
+    <div class="field" style="margin-bottom:0">
+      <span class="label">How many students are in the team?</span>
+      <div class="seg" role="radiogroup" aria-label="Team size">
+        {% for n in size_options %}<label><input type="radio" name="size" value="{{ n }}"><span>{{ n }}</span></label>{% endfor %}
+      </div>
+      <p class="hint">Teams are capped by batch (usually up to {{ max_size }}).</p>
+      <p class="err" id="size-warning" hidden></p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Members</h2>
+    <p class="muted small">Mark one student as the <strong>team leader</strong> with the ★ switch on their card.</p>
+    <input type="hidden" name="members-TOTAL_FORMS" id="id_members-TOTAL_FORMS" value="{{ bundle.rows|length }}">
+    <input type="hidden" name="members-INITIAL_FORMS" value="0">
+    <input type="hidden" name="members-MIN_NUM_FORMS" value="0">
+    <input type="hidden" name="members-MAX_NUM_FORMS" value="12">
+    <div id="members" class="members">
+      {% for form in bundle.rows %}{% include "portal/_member_row.html" with form=form index=forloop.counter0 leader_index=bundle.leader_index %}{% endfor %}
+    </div>
+    <div id="members-empty" class="empty" {% if bundle.rows %}hidden{% endif %}>Choose a team size above and the member fields will appear here.</div>
+    <p class="err" id="leader-error" hidden>Please select the team leader (★ on one member's card).</p>
+    <noscript><p class="err">JavaScript is required to add team members.</p></noscript>
+  </section>
+
+  <template id="row-template">{% include "portal/_member_row.html" with form=bundle.formset.empty_form index="__prefix__" leader_index=None %}</template>
+  {{ batch_limits|json_script:"batch-limits" }}
+
+  <div class="actions">
+    <button class="btn primary" type="submit" data-busy-text="Checking…">{% if mode == "edit" %}Save changes{% else %}Review details →{% endif %}</button>
+    {% if mode == "register" %}<a class="btn ghost" href="{% url 'home' %}">Cancel</a>{% endif %}
+  </div>
+</form>
+{% endblock %}

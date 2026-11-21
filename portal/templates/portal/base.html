@@ -1,0 +1,38 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}{{ site.site_title|default:"Team Portal" }}{% endblock %}</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%230f766e'/%3E%3Cpath d='M9 17l5 5 9-11' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="{% static 'portal/css/app.css' %}">
+</head>
+<body>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="{% url 'home' %}">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="var(--accent)"/><path d="M9 17l5 5 9-11" fill="none" stroke="var(--accent-ink)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      {{ site.site_title|default:"Team Portal" }}
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="{% url 'register' %}"{% if request.resolver_match.url_name == 'register' %} aria-current="page"{% endif %}>Register</a>
+      <a href="{% url 'submit_lookup' %}"{% if request.resolver_match.url_name|slice:":6" == 'submit' %} aria-current="page"{% endif %}>Submit report</a>
+      <a href="{% url 'team_edit_login' %}">Edit team</a>
+    </nav>
+  </div>
+</header>
+{% if site.announcement %}<div class="banner">{{ site.announcement }}</div>{% endif %}
+<main class="wrap">
+  {% for m in messages %}<div class="alert {{ m.tags|default:'info' }}" role="status">{{ m }}</div>{% endfor %}
+  {% block content %}{% endblock %}
+</main>
+<footer>
+  <div class="in">
+    <span>{{ site.site_title|default:"Team Portal" }}</span>
+    <span>{% if site.support_email %}Need help? <a href="mailto:{{ site.support_email }}">{{ site.support_email }}</a> · {% endif %}<a href="{% url 'team_find' %}">Lost your Team ID?</a></span>
+  </div>
+</footer>
+<script src="{% static 'portal/js/app.js' %}" defer></script>
+</body>
+</html>

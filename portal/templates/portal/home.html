@@ -1,0 +1,59 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<section class="hero">
+  <div class="eyebrow">{% if site.course_name %}{{ site.course_name }}{% else %}Team registration &amp; report submission{% endif %}</div>
+  <h1>Register your team.<br>Submit your report.</h1>
+  <p class="lead">Get a unique Team ID for your group, then use it to hand in your work, once per team.</p>
+</section>
+
+<section class="grid2">
+  <a class="card tile" href="{% url 'register' %}">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/></svg></div>
+    <h2>Register a team</h2>
+    <p class="muted">Add your teammates, choose a leader and receive your Team ID.</p>
+    <span class="go">Start registration →</span>
+  </a>
+  <a class="card tile" href="{% url 'submit_lookup' %}">
+    <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></div>
+    <h2>Submit your report</h2>
+    <p class="muted">Enter your Team ID and upload a PDF or Word file.</p>
+    <span class="go">Go to submission →</span>
+  </a>
+</section>
+
+{% if active_milestone %}
+<section>
+  <div class="card flat due">
+    <div>
+      <div class="muted small">Now open</div>
+      <div class="big">{{ active_milestone.name }}</div>
+      <div class="muted">Due {{ active_milestone.deadline|date:"D, j M Y, g:i A" }} · <strong data-countdown="{{ active_milestone.deadline|date:'c' }}"></strong></div>
+    </div>
+    <div>
+      {% if active_milestone.template_url %}
+        <a class="btn" href="{{ active_milestone.template_url }}" target="_blank" rel="noopener noreferrer">Open report template ↗</a>
+      {% else %}
+        <span class="chip warn">Template link coming soon</span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section>
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li><strong>Register once</strong>One person fills in the team; everyone receives the Team ID by email.</li>
+    <li><strong>Keep your ID safe</strong>You need it to submit. Typos can be fixed later with your edit PIN.</li>
+    <li><strong>Upload the report</strong>Any teammate can upload. One report per team, so one upload covers everyone.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Good to know</h2>
+  <details><summary>I haven't registered my team yet</summary><p>You'll need a Team ID before you can submit. <a href="{% url 'register' %}">Register first</a>, it only takes a couple of minutes.</p></details>
+  <details><summary>I lost my Team ID</summary><p>Use <a href="{% url 'team_find' %}">Find my team</a>. Enter your enrolment number and registered email and we'll send it again.</p></details>
+  <details><summary>A teammate already uploaded the report</summary><p>Then your team is done. When you enter your Team ID, you'll see who submitted and when.</p></details>
+  <details><summary>I need more time</summary><p>Ask your instructor. Extensions can be granted to a single team or to everyone.</p></details>
+</section>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "portal/base.html" %}
+{% block title %}Report received · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="narrow stack">
+  <div class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg></div>
+  <h1 style="font-size:2.4rem">Report received</h1>
+  <p class="muted">Your team's submission is in. A receipt was emailed to all team members.</p>
+  <div class="card">
+    <dl class="facts">
+      <dt>Milestone</dt><dd>{{ milestone.name }}</dd>
+      <dt>Team ID</dt><dd class="mono">{{ team.team_id }}</dd>
+      <dt>Team name</dt><dd>{{ team.name }}</dd>
+      <dt>Team leader</dt><dd>{{ team.leader_name }}</dd>
+      <dt>Uploaded by</dt><dd>{{ upload.uploaded_by_name }}</dd>
+      <dt>File</dt><dd>{{ upload.original_name }} <span class="muted">({{ upload.size|filesizeformat }}, v{{ upload.version }})</span></dd>
+      <dt>Received</dt><dd>{{ upload.uploaded_at|date:"D, j M Y, g:i:s A" }}{% if upload.is_late %} <span class="chip warn">Late</span>{% endif %}</dd>
+      <dt>Checksum</dt><dd class="mono small">{{ upload.sha256|slice:":16" }}…</dd>
+    </dl>
+  </div>
+  <a class="btn" href="{% url 'home' %}">Done</a>
+</div>
+{% endblock %}

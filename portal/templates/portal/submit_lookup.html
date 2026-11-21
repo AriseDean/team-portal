@@ -1,0 +1,36 @@
+{% extends "portal/base.html" %}
+{% block title %}Submit report · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="narrow stack">
+  <div class="eyebrow" style="margin:0">{% if milestone %}{{ milestone.name }}{% else %}Report submission{% endif %}</div>
+  <h1 style="font-size:2.4rem">Enter your Team ID</h1>
+  <p class="muted">Only registered teams can submit. Your Team ID looks like <span class="mono">{{ "TM-K7M-2QX" }}</span> and was shown after registration (and emailed to you).</p>
+
+  {% if milestone %}
+  <div class="card flat small">
+    Due <strong>{{ milestone.deadline|date:"D, j M Y, g:i A" }}</strong> · <span data-countdown="{{ milestone.deadline|date:'c' }}"></span>
+    {% if milestone.template_url %}<br><a href="{{ milestone.template_url }}" target="_blank" rel="noopener noreferrer">Use the official report template ↗</a>{% else %}<br><span class="muted">Report template link will be shared soon.</span>{% endif %}
+  </div>
+  {% endif %}
+
+  <form method="post" class="card" data-once novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert danger">{{ form.non_field_errors.0 }}</div>{% endif %}
+    <div class="field{% if form.team_id.errors %} has-error{% endif %}">
+      <label for="{{ form.team_id.id_for_label }}">Team ID</label>
+      {{ form.team_id }}
+      {% for e in form.team_id.errors %}<p class="err">{{ e }}</p>{% endfor %}
+    </div>
+    <button class="btn primary block" type="submit" data-busy-text="Checking…">Continue</button>
+  </form>
+
+  {% if not_registered %}
+  <div class="alert warn">
+    <strong>This team isn't registered.</strong> Register your team first, then come back with your Team ID.
+    <div class="actions" style="margin-top:.8rem"><a class="btn primary" href="{% url 'register' %}">Register a team</a><a class="btn" href="{% url 'team_find' %}">Find my team</a></div>
+  </div>
+  {% else %}
+  <p class="muted small">No Team ID yet? <a href="{% url 'register' %}">Register your team</a> · <a href="{% url 'team_find' %}">Lost your ID?</a></p>
+  {% endif %}
+</div>
+{% endblock %}

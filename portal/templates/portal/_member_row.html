@@ -1,0 +1,14 @@
+<div class="member">
+  <header>
+    <span class="num">{% if index == "__prefix__" %}#{% else %}{{ index|add:1 }}{% endif %}</span>
+    <span class="title">Member</span>
+    <label class="leader-toggle"><input type="radio" name="leader" value="{{ index }}"{% if index == leader_index %} checked{% endif %}><span>★ Team leader</span></label>
+  </header>
+  <div class="member-fields">
+    <div class="field{% if form.name.errors %} has-error{% endif %}"><label for="{{ form.name.id_for_label }}">Name</label>{{ form.name }}{% for e in form.name.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field{% if form.enrolment.errors %} has-error{% endif %}"><label for="{{ form.enrolment.id_for_label }}">Enrolment no.</label>{{ form.enrolment }}{% for e in form.enrolment.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field{% if form.phone.errors %} has-error{% endif %}"><label for="{{ form.phone.id_for_label }}">Ph. number</label>{{ form.phone }}{% for e in form.phone.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field{% if form.email.errors %} has-error{% endif %}"><label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}{% for e in form.email.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field{% if form.batch.errors %} has-error{% endif %}"><label for="{{ form.batch.id_for_label }}">Batch</label>{{ form.batch }}{% for e in form.batch.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+  </div>
+</div>

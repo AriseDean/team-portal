@@ -1,0 +1,8 @@
+{% extends "portal/base.html" %}
+{% block content %}
+<div class="narrow card stack">
+  <h1 style="font-size:2rem">{{ title }}</h1>
+  <p class="muted">{{ text }}</p>
+  <a class="btn" href="{% url 'home' %}">Back to home</a>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "portal/base.html" %}
+{% block title %}Submit report · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="eyebrow" style="margin:0">{{ milestone.name }}</div>
+<h1 style="font-size:2.4rem">{% if submission %}Your team's report{% else %}Upload your report{% endif %}</h1>
+
+<div class="twocol" style="margin-top:1rem">
+  <div class="stack">
+    {% if submission %}
+    <div class="card" style="border-color:var(--ok)">
+      <span class="chip ok">✓ Submitted</span>
+      {% if latest.is_late %}<span class="chip warn">Late</span>{% endif %}
+      <p style="margin:.7rem 0 .8rem" class="muted">Your team has already submitted. There is no need for anyone else to upload again.</p>
+      <dl class="facts">
+        <dt>Team ID</dt><dd class="mono">{{ team.team_id }}</dd>
+        <dt>Team name</dt><dd>{{ team.name }}</dd>
+        <dt>Team leader</dt><dd>{{ team.leader_name }}</dd>
+        <dt>Submitted by</dt><dd>{{ first.uploaded_by_name }}</dd>
+        <dt>Submitted on</dt><dd>{{ first.uploaded_at|date:"D, j M Y, g:i A" }}</dd>
+        {% if latest.version > 1 %}<dt>Latest version</dt><dd>v{{ latest.version }} by {{ latest.uploaded_by_name }}, {{ latest.uploaded_at|date:"j M, g:i A" }}</dd>{% endif %}
+        <dt>File</dt><dd>{{ latest.original_name }} <span class="muted">({{ latest.size|filesizeformat }})</span></dd>
+      </dl>
+    </div>
+    {% else %}
+    <div class="card">
+      <dl class="facts">
+        <dt>Team ID</dt><dd class="mono">{{ team.team_id }}</dd>
+        <dt>Team name</dt><dd>{{ team.name }}</dd>
+        <dt>Team leader</dt><dd>{{ team.leader_name }}</dd>
+        <dt>Members</dt><dd>{% for m in members %}{{ m.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+      </dl>
+    </div>
+    {% endif %}
+
+    <div class="card flat small">
+      {% if state.on_time %}
+        Deadline: <strong>{{ state.deadline|date:"D, j M Y, g:i A" }}</strong>{% if state.extended %} <span class="chip">Extended for your team</span>{% endif %}<br>
+        <strong data-countdown="{{ state.deadline|date:'c' }}"></strong>
+      {% elif milestone.allow_late %}
+        <span class="chip warn">Deadline passed</span> It was {{ state.deadline|date:"D, j M Y, g:i A" }}. Late uploads are accepted but marked as late.
+      {% else %}
+        <span class="chip danger">Closed</span> The deadline was {{ state.deadline|date:"D, j M Y, g:i A" }}. Contact your instructor if you've been granted an extension, then enter your enrolment number below.
+      {% endif %}
+      {% if milestone.template_url %}<br><a href="{{ milestone.template_url }}" target="_blank" rel="noopener noreferrer">Report template ↗</a>{% endif %}
+    </div>
+    {% if milestone.description %}<p class="muted small">{{ milestone.description|linebreaksbr }}</p>{% endif %}
+  </div>
+
+  <div>
+    {% if locked %}
+      <div class="card"><h2>Replacements are switched off</h2><p class="muted" style="margin:0">Your report is in. If you must change it, ask your instructor.</p></div>
+    {% else %}
+    <form method="post" enctype="multipart/form-data" class="card" data-once novalidate>
+      {% csrf_token %}
+      <h2>{% if submission %}Replace the report{% else %}Upload{% endif %}</h2>
+      {% if submission %}<p class="muted small">Uploading again replaces the file your instructor sees. Earlier versions are kept.</p>{% endif %}
+      {% if form.non_field_errors %}<div class="alert danger">{{ form.non_field_errors.0 }}</div>{% endif %}
+      <div class="field{% if form.enrolment.errors %} has-error{% endif %}">
+        <label for="{{ form.enrolment.id_for_label }}">Your enrolment no.</label>
+        {{ form.enrolment }}
+        {% for e in form.enrolment.errors %}<p class="err">{{ e }}</p>{% endfor %}
+        <p class="hint">Must be one of this team's members.</p>
+      </div>
+      <div class="field{% if form.report.errors %} has-error{% endif %}">
+        <span class="label">Report file</span>
+        <div class="dropzone" data-max-mb="{{ milestone.max_file_mb }}">
+          {{ form.report }}
+          <div class="big">Drop your file here or click to browse</div>
+          <div class="muted small">PDF or Word (.pdf, .doc, .docx) · up to {{ milestone.max_file_mb }} MB</div>
+          <div class="fname"></div>
+        </div>
+        <p class="err client-err"></p>
+        {% for e in form.report.errors %}<p class="err">{{ e }}</p>{% endfor %}
+      </div>
+      <button class="btn primary block" type="submit" data-busy-text="Uploading…">{% if submission %}Replace report{% else %}Submit report{% endif %}</button>
+    </form>
+    {% endif %}
+    <p class="small muted" style="margin-top:.9rem"><a href="{% url 'submit_leave' %}">← Use a different Team ID</a></p>
+  </div>
+</div>
+{% endblock %}

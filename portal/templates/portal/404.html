@@ -1,0 +1,9 @@
+{% extends "portal/base.html" %}
+{% block title %}Not found{% endblock %}
+{% block content %}
+<div class="narrow card stack">
+  <h1 style="font-size:2rem">Page not found</h1>
+  <p class="muted">That page doesn't exist or has moved.</p>
+  <a class="btn primary" href="{% url 'home' %}">Go to home</a>
+</div>
+{% endblock %}

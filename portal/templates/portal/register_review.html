@@ -1,0 +1,26 @@
+{% extends "portal/base.html" %}
+{% block title %}Review · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="stepper"><span><i>1</i> Details</span><span class="sep"></span><span class="on"><i>2</i> Review</span><span class="sep"></span><span><i>3</i> Team ID</span></div>
+<h1 style="font-size:2.4rem">Check everything</h1>
+<p class="muted">Spot a typo? Go back and fix it now. You can also edit later using your PIN.</p>
+
+<div class="card stack">
+  <div><div class="muted small">Team name</div><div style="font:600 1.6rem var(--serif)">{{ bundle.team_form.cleaned_data.name }}</div></div>
+  <div class="scroll">
+    <table class="list">
+      <thead><tr><th>#</th><th>Name</th><th>Enrolment</th><th>Phone</th><th>Email</th><th>Batch</th></tr></thead>
+      <tbody>
+      {% for m in members %}
+        <tr><td>{{ forloop.counter }}</td><td>{{ m.name }}{% if m.is_leader %} <span class="chip">Leader</span>{% endif %}</td><td class="mono">{{ m.enrolment }}</td><td>{{ m.phone }}</td><td>{{ m.email }}</td><td>{{ m.batch }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <form method="post" action="{% url 'register_confirm' %}" data-once class="actions" style="margin-top:0">
+    {% csrf_token %}
+    <button class="btn primary" type="submit" data-busy-text="Creating your team…">Confirm &amp; get Team ID</button>
+    <a class="btn" href="{% url 'register' %}?resume=1">← Edit details</a>
+  </form>
+</div>
+{% endblock %}

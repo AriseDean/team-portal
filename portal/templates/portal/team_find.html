@@ -1,0 +1,20 @@
+{% extends "portal/base.html" %}
+{% block title %}Find my team · {{ site.site_title }}{% endblock %}
+{% block content %}
+<div class="narrow stack">
+  <h1 style="font-size:2.4rem">Find my team</h1>
+  {% if sent %}
+    <div class="alert ok"><strong>Check your inbox.</strong> If those details match a registered team, we've emailed the Team ID to that address. (It can take a minute.)</div>
+    <a class="btn" href="{% url 'submit_lookup' %}">Submit report</a>
+  {% else %}
+  <p class="muted">Enter your enrolment number and the email you registered with. We'll send your Team ID there.</p>
+  <form method="post" class="card" data-once novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert danger">{{ form.non_field_errors.0 }}</div>{% endif %}
+    <div class="field"><label for="{{ form.enrolment.id_for_label }}">Enrolment no.</label>{{ form.enrolment }}{% for e in form.enrolment.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ form.email.id_for_label }}">Email</label>{{ form.email }}{% for e in form.email.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <button class="btn primary block" type="submit" data-busy-text="Sending…">Email me my Team ID</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}
