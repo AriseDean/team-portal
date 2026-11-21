@@ -7,3 +7,4 @@ staticfiles/
 *.sqlite3-wal
 *.sqlite3-shm
 .DS_Store
+.venv/

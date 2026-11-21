@@ -5,3 +5,6 @@ staticfiles/
 __pycache__/
 *.pyc
 *.sqlite3
+.venv/
+dev.py
+SETUP.md

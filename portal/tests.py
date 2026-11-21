@@ -532,3 +532,16 @@ class MiscTests(PortalCase):
         call_command("bootstrap")
         call_command("bootstrap")
         self.assertEqual(SiteConfig.objects.count(), 1)
+
+
+class SeedDemoTests(PortalCase):
+    def test_refuses_without_debug_and_works_with_force(self):
+        from django.core.management import call_command
+        from django.core.management.base import CommandError
+        with self.assertRaises(CommandError):
+            call_command("seed_demo")
+        call_command("seed_demo", "--force", "--teams", "6", stdout=io.StringIO())
+        self.assertEqual(Team.objects.filter(members__enrolment__startswith="DEMO").distinct().count(), 6)
+        self.assertEqual(Submission.objects.count(), 3)
+        call_command("seed_demo", "--force", "--clear", stdout=io.StringIO())
+        self.assertFalse(Team.objects.exists())
