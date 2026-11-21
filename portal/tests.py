@@ -765,3 +765,16 @@ class BatchRangeTests(PortalCase):
         self.assertEqual(Batch.objects.filter(name="B1").count(), 1)
         self.assertEqual(self.client.get(reverse("admin:portal_team_export_all")).status_code, 200)
         self.assertEqual(self.client.get(reverse("admin:portal_team_changelist")).status_code, 200)
+
+
+class LinkPreviewTests(PortalCase):
+    def test_meta_tags(self):
+        cfg = SiteConfig.get()
+        cfg.site_title, cfg.course_name = "Demo Team Portal", "Demo Course"
+        cfg.save()
+        html = self.client.get(reverse("home")).content.decode()
+        self.assertIn('property="og:title" content="Demo Team Portal', html)
+        self.assertIn('name="description" content="Register your team and submit your project reports for Demo Course."', html)
+        cfg.description = "Custom blurb"
+        cfg.save()
+        self.assertIn('property="og:description" content="Custom blurb"', self.client.get(reverse("home")).content.decode())

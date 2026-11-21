@@ -12,6 +12,10 @@ class SiteConfig(models.Model):
     course_name = models.CharField(
         max_length=120, blank=True, help_text="Shown under the title on the home page (optional)."
     )
+    description = models.CharField(
+        max_length=200, blank=True,
+        help_text="Short text shown in link previews (WhatsApp, Teams, search results). Leave empty for an automatic one.",
+    )
     registration_open = models.BooleanField(default=True)
     registration_deadline = models.DateTimeField(
         null=True, blank=True, help_text="Optional. After this, new teams can no longer register."
@@ -24,6 +28,13 @@ class SiteConfig(models.Model):
     announcement = models.CharField(
         max_length=300, blank=True, help_text="Optional banner shown on every page."
     )
+
+    @property
+    def meta_description(self):
+        if self.description:
+            return self.description
+        what = f" for {self.course_name}" if self.course_name else ""
+        return f"Register your team and submit your project reports{what}."
 
     class Meta:
         verbose_name = "portal settings"
