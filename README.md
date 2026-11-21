@@ -22,7 +22,7 @@ Built with Django + SQLite (no external services). Runs as one Docker container.
 
 Log in at `/admin/`, then:
 
-1. **Batches** – rename the placeholder batches and set each batch's *max team size* (e.g. 5). A mixed team is limited by its strictest batch.
+1. **Batches** – *Batches → Add batches by range* (e.g. `B1-B16, B65-B80`), delete the placeholders, and set each batch's *max team size* (e.g. 5). A mixed team is limited by its strictest batch.
 2. **Milestones → Milestone 2 Report** – set the **deadline**, paste the **template link** when you have it (until then students see "Template link coming soon"), and choose whether late uploads / re-uploads are allowed.
 3. **Portal settings** – site title, course name, support email, optional banner, min team size.
 4. The dashboard shows a *setup checklist* for anything still missing (template link, placeholder batches).
@@ -38,6 +38,7 @@ Log in at `/admin/`, then:
 | Remind them | Only with email enabled: *Email a reminder…* (otherwise export the *Not submitted* list) |
 | Download everything | Milestones → *Download all reports (ZIP)* (latest versions + `_manifest.csv`) |
 | Spreadsheet of status | Milestones → *Export submission status (CSV)* |
+| Export all students | Teams → *Export all students (CSV)* (respects the current filters/search) |
 | Fix a team / reset a PIN | Teams → open it, or tick it and use *Reset team PIN* (new PIN shown on screen) |
 | Let a team upload again | Delete its Submission (Submissions) — or leave *allow re-upload* on |
 | Next milestone | Add a Milestone and tick *Active* (only one is active; students always submit to it) |

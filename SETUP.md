@@ -174,7 +174,7 @@ Open `https://teams.example.com/admin/` and log in.
 
 ### 6. First-time configuration (in the admin)
 
-1. **Batches:** rename the placeholders and set each batch's max team size.
+1. **Batches:** *Batches → Add batches by range*, type e.g. `B1-B16, B65-B80` (letters + number, ranges and commas; existing ones are skipped), then delete the placeholder "Batch 1-3" and set max team size per batch.
 2. **Milestones → Milestone 2 Report:** real deadline, template link (when you have it), late/re-upload options.
 3. **Portal settings:** title, course name, support email, optional banner.
 4. **Change your admin password** (top right) and delete the `ADMIN_PASSWORD` line from `.env` (it's only read on first start).

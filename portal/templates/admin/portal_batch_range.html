@@ -1,0 +1,9 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+<form method="post">{% csrf_token %}
+  {{ form.as_p }}
+  <p>Examples: <code>B1-B16, B65-B80</code> &middot; <code>A1-A4, C10</code></p>
+  <input type="submit" class="default" value="Add batches">
+  <a href="{% url 'admin:portal_batch_changelist' %}" class="button cancel-link">Cancel</a>
+</form>
+{% endblock %}

@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django import forms
 from django.contrib import admin, messages
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
 from django.urls import reverse
 from django.utils import timezone
@@ -9,7 +10,7 @@ from django.utils.html import format_html
 
 from django.conf import settings
 
-from . import emails, ids, security
+from . import batches as batch_ranges, emails, ids, security
 from .exports import csv_response, zip_response
 from .models import (
     AuditLog,
@@ -42,10 +43,61 @@ class SiteConfigAdmin(admin.ModelAdmin):
         return False
 
 
+class BatchRangeForm(forms.Form):
+    ranges = forms.CharField(
+        label="Batches",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "B1-B16, B65-B80"}),
+        help_text="Letters + number. Use ranges and commas, e.g. B1-B16, B65-B80, A3. Existing batches are left alone.",
+    )
+    max_team_size = forms.IntegerField(min_value=1, max_value=20, initial=5, label="Max team size")
+    is_active = forms.BooleanField(required=False, initial=True, label="Active (shown in the dropdown)")
+
+    def clean_ranges(self):
+        try:
+            return batch_ranges.expand(self.cleaned_data["ranges"])
+        except ValueError as exc:
+            raise forms.ValidationError(str(exc))
+
+
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
     list_display = ("name", "max_team_size", "is_active", "student_count")
     list_editable = ("max_team_size", "is_active")
+    change_list_template = "admin/portal_batch_changelist.html"
+    actions = ["activate", "deactivate"]
+
+    def get_urls(self):
+        from django.urls import path
+        custom = [path("add-range/", self.admin_site.admin_view(self.add_range), name="portal_batch_add_range")]
+        return custom + super().get_urls()
+
+    def add_range(self, request):
+        if not self.has_add_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        form = BatchRangeForm(request.POST or None)
+        if request.method == "POST" and form.is_valid():
+            existing = {n.lower() for n in Batch.objects.values_list("name", flat=True)}
+            fresh = [n for n in form.cleaned_data["ranges"] if n.lower() not in existing]
+            Batch.objects.bulk_create([
+                Batch(name=n, max_team_size=form.cleaned_data["max_team_size"], is_active=form.cleaned_data["is_active"])
+                for n in fresh
+            ])
+            skipped = len(form.cleaned_data["ranges"]) - len(fresh)
+            self.message_user(request, f"Added {len(fresh)} batch(es)" + (f"; {skipped} already existed." if skipped else "."),
+                              messages.SUCCESS)
+            return HttpResponseRedirect(reverse("admin:portal_batch_changelist"))
+        context = {**self.admin_site.each_context(request), "title": "Add batches by range", "form": form,
+                   "opts": self.model._meta}
+        return render(request, "admin/portal_batch_range.html", context)
+
+    @admin.action(description="Mark selected batches active")
+    def activate(self, request, queryset):
+        self.message_user(request, f"{queryset.update(is_active=True)} batch(es) activated.")
+
+    @admin.action(description="Mark selected batches inactive (hide from dropdown)")
+    def deactivate(self, request, queryset):
+        self.message_user(request, f"{queryset.update(is_active=False)} batch(es) deactivated.")
 
     @admin.display(description="Students")
     def student_count(self, obj):
@@ -208,6 +260,20 @@ class TeamAdmin(admin.ModelAdmin):
     inlines = [MemberInline, ExtensionInline]
     actions = ["grant_extension", "reset_pin", "remind", "export_members"]
     list_per_page = 50
+    change_list_template = "admin/portal_team_changelist.html"
+
+    def get_urls(self):
+        from django.urls import path
+        custom = [path("export-all/", self.admin_site.admin_view(self.export_all), name="portal_team_export_all")]
+        return custom + super().get_urls()
+
+    def export_all(self, request):
+        """Every student of every team matching the current list filters/search (all of them if none)."""
+        if not self.has_view_permission(request):
+            from django.core.exceptions import PermissionDenied
+            raise PermissionDenied
+        queryset = self.get_changelist_instance(request).get_queryset(request).distinct()
+        return self._members_csv(queryset)
 
     def get_actions(self, request):
         actions = super().get_actions(request)
@@ -292,10 +358,13 @@ class TeamAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f"Reminder queued for {sent} team(s) that haven't submitted.")
 
-    @admin.action(description="Export members (CSV)")
+    @admin.action(description="Export students of selected teams (CSV)")
     def export_members(self, request, queryset):
+        return self._members_csv(queryset)
+
+    def _members_csv(self, queryset):
         rows = []
-        for team in queryset.prefetch_related("members__batch"):
+        for team in queryset.order_by("team_id").prefetch_related("members__batch"):
             for m in team.members.all():
                 rows.append([team.team_id, team.name, m.name, m.enrolment, m.phone, m.email, m.batch.name,
                              "leader" if m.is_leader else ""])

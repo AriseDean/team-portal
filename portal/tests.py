@@ -738,3 +738,30 @@ class EmailDisabledTests(PortalCase):
         self.assertNotContains(done, "was emailed")
         for name in ["home", "submit_lookup", "team_edit_login"]:
             self.assertNotContains(self.client.get(reverse(name)), "emailed", msg_prefix=name)
+
+
+class BatchRangeTests(PortalCase):
+    def test_expand(self):
+        from portal import batches
+        names = batches.expand("B1-B3, b65-67, A9, B2")
+        self.assertEqual(names, ["B1", "B2", "B3", "B65", "B66", "B67", "A9"])
+        for bad in ["", "B5-B1", "16", "B1-C4", "B1-B9999"]:
+            with self.assertRaises(ValueError, msg=bad):
+                batches.expand(bad)
+
+    def test_admin_add_range_and_export_all(self):
+        admin_user = get_user_model().objects.create_superuser("root", "r@example.com", "pw-for-tests-123")
+        self.client.force_login(admin_user)
+        url = reverse("admin:portal_batch_add_range")
+        self.assertEqual(self.client.get(url).status_code, 200)
+        pat = r'^B(\d+)$'
+        before_b = Batch.objects.filter(name__regex=pat).count()
+        overlap = Batch.objects.filter(name__in=[f'B{n}' for n in list(range(1, 17)) + list(range(65, 81))]).count()
+        self.client.post(url, {"ranges": "B1-B16, B65-B80", "max_team_size": 5, "is_active": "on"})
+        self.assertEqual(Batch.objects.filter(name__regex=r'^B(\d+)$').count() - before_b, 32 - overlap)
+        self.assertTrue(Batch.objects.filter(name="B80", max_team_size=5, is_active=True).exists())
+        self.assertFalse(Batch.objects.filter(name="B17").exists())
+        self.client.post(url, {"ranges": "B1-B16", "max_team_size": 5})  # re-run: no duplicates
+        self.assertEqual(Batch.objects.filter(name="B1").count(), 1)
+        self.assertEqual(self.client.get(reverse("admin:portal_team_export_all")).status_code, 200)
+        self.assertEqual(self.client.get(reverse("admin:portal_team_changelist")).status_code, 200)
