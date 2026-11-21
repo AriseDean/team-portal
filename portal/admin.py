@@ -23,6 +23,7 @@ from .models import (
     Team,
     Upload,
 )
+from .models import batch_sort_key
 from .services import effective_deadline
 
 admin.site.index_template = "admin/portal_index.html"
@@ -80,7 +81,7 @@ class BatchAdmin(admin.ModelAdmin):
             existing = {n.lower() for n in Batch.objects.values_list("name", flat=True)}
             fresh = [n for n in form.cleaned_data["ranges"] if n.lower() not in existing]
             Batch.objects.bulk_create([
-                Batch(name=n, max_team_size=form.cleaned_data["max_team_size"], is_active=form.cleaned_data["is_active"])
+                Batch(name=n, sort_key=batch_sort_key(n), max_team_size=form.cleaned_data["max_team_size"], is_active=form.cleaned_data["is_active"])
                 for n in fresh
             ])
             skipped = len(form.cleaned_data["ranges"]) - len(fresh)

@@ -1,3 +1,4 @@
+import re
 from django.contrib.auth.hashers import check_password, make_password
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -59,16 +60,35 @@ class SiteConfig(models.Model):
         return not self.registration_deadline or timezone.now() < self.registration_deadline
 
 
+_TRAILING_NUMBER = re.compile(r"^(.*?)(\d+)$")
+
+
+def batch_sort_key(name):
+    """Natural order: B1, B2, B10 (not B1, B10, B2); letters first, then the number."""
+    m = _TRAILING_NUMBER.match(name.strip())
+    if m:
+        return f"{m.group(1).lower()}{int(m.group(2)):08d}"
+    return name.strip().lower()
+
+
 class Batch(models.Model):
     name = models.CharField(max_length=60, unique=True)
+    sort_key = models.CharField(max_length=80, editable=False, default="", db_index=True)
     max_team_size = models.PositiveSmallIntegerField(
         default=5, help_text="Largest team allowed for students of this batch."
     )
     is_active = models.BooleanField(default=True, help_text="Inactive batches disappear from the dropdown.")
 
     class Meta:
-        ordering = ["name"]
+        ordering = ["sort_key", "name"]
         verbose_name_plural = "batches"
+
+    def save(self, *args, **kwargs):
+        self.sort_key = batch_sort_key(self.name)
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "name" in update_fields:
+            kwargs["update_fields"] = list(update_fields) + ["sort_key"]
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

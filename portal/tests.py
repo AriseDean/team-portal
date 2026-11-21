@@ -778,3 +778,20 @@ class LinkPreviewTests(PortalCase):
         cfg.description = "Custom blurb"
         cfg.save()
         self.assertIn('property="og:description" content="Custom blurb"', self.client.get(reverse("home")).content.decode())
+
+
+class BatchOrderTests(PortalCase):
+    def test_natural_order(self):
+        Batch.objects.all().delete()
+        for n in ["B10", "B2", "B1", "A11", "A3", "B100"]:
+            Batch.objects.create(name=n)
+        self.assertEqual([b.name for b in Batch.objects.all()], ["A3", "A11", "B1", "B2", "B10", "B100"])
+
+    def test_registration_dropdown_is_ordered(self):
+        Batch.objects.all().delete()
+        for n in ["B10", "B2", "B1"]:
+            Batch.objects.create(name=n)
+        # the form's queryset (what the dropdown uses)
+        from .forms import MemberForm
+        names = [b.name for b in MemberForm().fields["batch"].queryset]
+        self.assertEqual(names, ["B1", "B2", "B10"])
