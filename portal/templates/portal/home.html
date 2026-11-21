@@ -16,7 +16,7 @@
   <a class="card tile" href="{% url 'submit_lookup' %}">
     <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg></div>
     <h2>Submit your report</h2>
-    <p class="muted">Enter your Team ID and upload a PDF or Word file.</p>
+    <p class="muted">Enter your Team ID and PIN, then upload a PDF or Word file.</p>
     <span class="go">Go to submission →</span>
   </a>
 </section>
@@ -44,16 +44,16 @@
   <h2>How it works</h2>
   <ol class="steps">
     <li><strong>Register once</strong>One person fills in the team; everyone receives the Team ID by email.</li>
-    <li><strong>Keep your ID safe</strong>You need it to submit. Typos can be fixed later with your edit PIN.</li>
+    <li><strong>Keep ID &amp; PIN safe</strong>You need both to submit, so only your team can. The PIN also lets you fix typos later.</li>
     <li><strong>Upload the report</strong>Any teammate can upload. One report per team, so one upload covers everyone.</li>
   </ol>
 </section>
 
 <section>
   <h2>Good to know</h2>
-  <details><summary>I haven't registered my team yet</summary><p>You'll need a Team ID before you can submit. <a href="{% url 'register' %}">Register first</a>, it only takes a couple of minutes.</p></details>
-  <details><summary>I lost my Team ID</summary><p>Use <a href="{% url 'team_find' %}">Find my team</a>. Enter your enrolment number and registered email and we'll send it again.</p></details>
-  <details><summary>A teammate already uploaded the report</summary><p>Then your team is done. When you enter your Team ID, you'll see who submitted and when.</p></details>
+  <details><summary>I haven't registered my team yet</summary><p>You'll need a Team ID and PIN before you can submit. <a href="{% url 'register' %}">Register first</a>, it only takes a couple of minutes.</p></details>
+  <details><summary>I lost my Team ID or PIN</summary><p>Use <a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a> Enter your enrolment number and registered email and we'll email the ID and a new PIN to the whole team.</p></details>
+  <details><summary>A teammate already uploaded the report</summary><p>Then your team is done. When you sign in with your Team ID and PIN, you'll see who submitted and when.</p></details>
   <details><summary>I need more time</summary><p>Ask your instructor. Extensions can be granted to a single team or to everyone.</p></details>
 </section>
 {% endblock %}

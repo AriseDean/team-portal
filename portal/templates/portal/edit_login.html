@@ -8,9 +8,9 @@
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert danger">{{ form.non_field_errors.0 }}</div>{% endif %}
     <div class="field"><label for="{{ form.team_id.id_for_label }}">Team ID</label>{{ form.team_id }}{% for e in form.team_id.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
-    <div class="field"><label for="{{ form.pin.id_for_label }}">Edit PIN</label>{{ form.pin }}{% for e in form.pin.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
+    <div class="field"><label for="{{ form.pin.id_for_label }}">Team PIN</label>{{ form.pin }}{% for e in form.pin.errors %}<p class="err">{{ e }}</p>{% endfor %}</div>
     <button class="btn primary block" type="submit" data-busy-text="Checking…">Continue</button>
   </form>
-  <p class="muted small">Lost the PIN? Ask your instructor to reset it. · <a href="{% url 'team_find' %}">Lost your Team ID?</a></p>
+  <p class="muted small"><a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a> We'll email a new one to the whole team.</p>
 </div>
 {% endblock %}

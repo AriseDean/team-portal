@@ -72,8 +72,8 @@ class Command(BaseCommand):
                                          reason="demo extension")
 
         self.stdout.write(self.style.SUCCESS(
-            f"Created {len(created)} demo teams ({submitted} with a submitted report). Edit PIN for all of them: 123456"))
-        self.stdout.write("Try these Team IDs on the Submit page:")
+            f"Created {len(created)} demo teams ({submitted} with a submitted report). PIN for all of them: 123456"))
+        self.stdout.write("Try these on the Submit page (PIN for every demo team: 123456):")
         for team in created[:3] + created[-2:]:
             state = "submitted" if team.submissions.exists() else "not submitted"
             self.stdout.write(f"  {team.team_id}  {team.name}  ({state}; enrolment of leader: {team.leader.enrolment})")

@@ -253,7 +253,7 @@ class TeamAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         })
 
-    @admin.action(description="Reset edit PIN (and email the team)")
+    @admin.action(description="Reset team PIN (and email the team)")
     def reset_pin(self, request, queryset):
         for team in queryset:
             pin = ids.generate_pin()

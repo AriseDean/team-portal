@@ -3,8 +3,8 @@
 {% block content %}
 <div class="narrow stack">
   <div class="eyebrow" style="margin:0">{% if milestone %}{{ milestone.name }}{% else %}Report submission{% endif %}</div>
-  <h1 style="font-size:2.4rem">Enter your Team ID</h1>
-  <p class="muted">Only registered teams can submit. Your Team ID looks like <span class="mono">{{ "TM-K7M-2QX" }}</span> and was shown after registration (and emailed to you).</p>
+  <h1 style="font-size:2.4rem">Enter your Team ID and PIN</h1>
+  <p class="muted">Only members of a registered team can submit. Your Team ID (like <span class="mono">TM-K7M-2QX</span>) and 6-digit PIN were shown after registration and emailed to every member.</p>
 
   {% if milestone %}
   <div class="card flat small">
@@ -21,16 +21,21 @@
       {{ form.team_id }}
       {% for e in form.team_id.errors %}<p class="err">{{ e }}</p>{% endfor %}
     </div>
+    <div class="field{% if form.pin.errors %} has-error{% endif %}">
+      <label for="{{ form.pin.id_for_label }}">Team PIN</label>
+      {{ form.pin }}
+      {% for e in form.pin.errors %}<p class="err">{{ e }}</p>{% endfor %}
+    </div>
     <button class="btn primary block" type="submit" data-busy-text="Checking…">Continue</button>
   </form>
 
   {% if not_registered %}
   <div class="alert warn">
     <strong>This team isn't registered.</strong> Register your team first, then come back with your Team ID.
-    <div class="actions" style="margin-top:.8rem"><a class="btn primary" href="{% url 'register' %}">Register a team</a><a class="btn" href="{% url 'team_find' %}">Find my team</a></div>
+    <div class="actions" style="margin-top:.8rem"><a class="btn primary" href="{% url 'register' %}">Register a team</a><a class="btn" href="{% url 'team_find' %}">Lost my ID / PIN</a></div>
   </div>
   {% else %}
-  <p class="muted small">No Team ID yet? <a href="{% url 'register' %}">Register your team</a> · <a href="{% url 'team_find' %}">Lost your ID?</a></p>
+  <p class="muted small">No Team ID yet? <a href="{% url 'register' %}">Register your team</a> · <a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a></p>
   {% endif %}
 </div>
 {% endblock %}

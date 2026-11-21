@@ -43,36 +43,39 @@ def send_registration(team, pin, request=None):
 
 Team name : {team.name}
 Team ID   : {team.team_id}
-Edit PIN  : {pin}
+Team PIN  : {pin}
 
 Members:
 {_members_block(team)}
 
-Keep the Team ID safe: you need it to submit your report. The PIN lets your team fix typos in its details.
+Keep the Team ID and PIN safe: you need BOTH to submit your report, and the PIN also lets your team fix typos in its details.
+Only members of the team receive this email, so please don't share the PIN with anyone else.
 {_site_url(request)}
 """
     return _send(f"Team registered: {team.team_id}", body, [m.email for m in team.members.all()])
 
 
 def send_pin_reset(team, pin, request=None):
-    body = f"""The edit PIN for team {team.name} ({team.team_id}) was reset by the instructor.
+    body = f"""The PIN for team {team.name} ({team.team_id}) was reset by the instructor.
 
-New edit PIN: {pin}
+New PIN: {pin}
 {_site_url(request)}
 """
-    return _send(f"New edit PIN for {team.team_id}", body, [m.email for m in team.members.all()])
+    return _send(f"New team PIN for {team.team_id}", body, [m.email for m in team.members.all()])
 
 
-def send_team_id(member, request=None):
-    team = member.team
-    body = f"""You asked for your team details.
+def send_recovery(team, pin, request=None):
+    body = f"""Someone on your team asked for the team details again.
 
 Team name : {team.name}
 Team ID   : {team.team_id}
+New PIN   : {pin}
 
+The PIN is needed to submit your report and to edit your team. Any earlier PIN no longer works.
+If nobody on your team asked for this, tell your instructor.
 {_site_url(request)}
 """
-    return _send("Your team ID", body, [member.email])
+    return _send(f"Team ID and new PIN for {team.team_id}", body, [m.email for m in team.members.all()])
 
 
 def send_receipt(upload, request=None):

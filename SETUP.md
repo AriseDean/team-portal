@@ -33,16 +33,17 @@ Stop with `Ctrl+C`. Use `python dev.py` (without `demo`) for an empty site.
 
 1. **Register a team.** Home → *Register a team*. Choose a team size, fill in the member cards, tick the ★ leader,
    review, confirm. You get a Team ID and PIN, and the "email" appears in the terminal.
-2. **Submit a report.** *Submit report* → enter the Team ID (lower-case is fine) → your enrolment number → upload any PDF or Word file.
-3. **See the "already submitted" view.** Open a **private/incognito window**, enter the same Team ID, and use a *different*
+2. **Submit a report.** *Submit report* → enter the Team ID (lower-case is fine) **and PIN** → your enrolment number → upload any PDF or Word file.
+3. **See the "already submitted" view.** Open a **private/incognito window**, sign in with the same Team ID and PIN, and use a *different*
    teammate's enrolment number. You should see the team ID, name, leader and who uploaded first.
-4. **Try the failure cases.** An unregistered Team ID (e.g. `TM-ABC-234`), a made-up enrolment number, a `.txt` file renamed to `.pdf`.
+4. **Try the failure cases.** An unregistered Team ID (e.g. `TM-ABC-234`), a wrong PIN, a made-up enrolment number, a `.txt` file renamed to `.pdf`.
+   Then try *Lost your Team ID or PIN?*: the new PIN is emailed (printed in your terminal) to every member of the team.
 5. **Deadlines.** In the admin: *Milestones → Milestone 2 Report*, set the deadline to a minute ago and save. Submissions are now blocked.
    Then try each way of extending: tick *Allow late uploads*; or *Teams →* select a team → action *Grant a deadline extension…*;
    or *Milestones →* action *Extend deadline for EVERYONE*.
 6. **Admin tools.** Look at the dashboard counts, filter *Teams → Not submitted*, and try the *Export submission status (CSV)* and
    *Download all reports (ZIP)* actions on the milestone list.
-7. **Edit a team.** *Edit team* → Team ID + PIN (the demo teams all use PIN `123456`).
+7. **Edit a team.** *Edit team* → Team ID + PIN. The demo teams all use PIN `123456`, which also works on the Submit page.
 8. **Template link.** Paste any URL into the milestone's *Template url* and see the button appear on the home and submit pages.
 
 ### 3. Handy commands
@@ -182,7 +183,7 @@ Open `https://teams.example.com/admin/` and log in.
 
 ### 7. Dress rehearsal
 
-Register a test team, receive the email, submit a file, check it appears in the admin, download it. Then delete the test team
+Register a test team, receive the email (with Team ID and PIN), submit a file, check it appears in the admin, download it. Then delete the test team
 (*Admin → Teams → delete*). Everything the students will do, you've now done once.
 
 ### 8. Pre-launch checklist
@@ -192,7 +193,7 @@ Register a test team, receive the email, submit a file, check it appears in the 
 - [ ] Test registration + submission worked over `https://`
 - [ ] Backup cron job added (below) and you've tested a restore at least once
 - [ ] Test data deleted
-- [ ] Share the link: `https://teams.example.com/`
+- [ ] Share the link: `https://teams.example.com/` and remind students that **Team ID + PIN** (both in their registration email) are needed to submit
 
 ### Day-to-day operations
 

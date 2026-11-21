@@ -148,25 +148,41 @@ def _edit_team(request):
     return Team.objects.filter(pk=auth["pk"]).first()
 
 
+def _authenticate(request, raw_id, pin):
+    """Check Team ID + PIN. Returns (status, team); status is one of
+    ok, malformed, unknown, bad_pin, locked, throttled. Wrong PINs are counted per team."""
+    if _too_many(request, "pin-login"):
+        return "throttled", None
+    team_id = ids.normalize(raw_id)
+    if team_id is None:
+        return "malformed", None
+    team = Team.objects.filter(team_id=team_id).first()
+    if not team:
+        return "unknown", None
+    lock_key = f"pin:{team.pk}"
+    if security.count(lock_key) >= PIN_FAIL_LIMIT:
+        return "locked", team
+    if team.check_pin((pin or "").strip()):
+        security.clear(lock_key)
+        return "ok", team
+    security.hit(lock_key, 3600)
+    return "bad_pin", team
+
+
+_AUTH_MESSAGES = {
+    "throttled": "Too many attempts. Please wait a few minutes and try again.",
+    "locked": "This team is temporarily locked after too many wrong PINs. Use “Lost your PIN?” to get a new one by email, or try again in an hour.",
+}
+
+
 def team_edit_login(request):
     form = EditLoginForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        raw_id = form.cleaned_data["team_id"]
-        team_id = ids.normalize(raw_id)
-        team = Team.objects.filter(team_id=team_id).first() if team_id else None
-        lock_key = f"pin:{team.pk}" if team else None
-        if _too_many(request, "edit-login"):
-            form.add_error(None, "Too many attempts. Please wait a few minutes and try again.")
-        elif team and security.count(lock_key) >= PIN_FAIL_LIMIT:
-            form.add_error(None, "This team is temporarily locked after too many wrong PINs. Try again in an hour or ask your instructor.")
-        elif team and team.check_pin(form.cleaned_data["pin"].strip()):
-            security.clear(lock_key)
+        status, team = _authenticate(request, form.cleaned_data["team_id"], form.cleaned_data["pin"])
+        if status == "ok":
             request.session["edit_auth"] = {"pk": team.pk, "at": time.time()}
             return redirect("team_edit")
-        else:
-            if team:
-                security.hit(lock_key, 3600)
-            form.add_error(None, "Team ID or PIN is incorrect.")
+        form.add_error(None, _AUTH_MESSAGES.get(status, "Team ID or PIN is incorrect."))
     return render(request, "portal/edit_login.html", {"form": form})
 
 
@@ -219,8 +235,16 @@ def team_find(request):
                 email__iexact=form.cleaned_data["email"].strip(),
             ).select_related("team").first()
             if member:
-                emails.send_team_id(member, request)
-                audit(request, "team_id_emailed", member.team)
+                team = member.team
+                # A team can have its PIN re-issued once per 15 minutes. The new PIN is emailed to
+                # every member (never shown on screen), so knowing someone's details can't reveal it.
+                if security.hit(f"pinreset:{team.pk}", 900) == 1:
+                    pin = ids.generate_pin()
+                    team.set_pin(pin)
+                    team.save(update_fields=["pin_hash", "updated_at"])
+                    security.clear(f"pin:{team.pk}")
+                    emails.send_recovery(team, pin, request)
+                    audit(request, "pin_reissued", team, f"requested via {member.enrolment}")
             sent = True  # same answer whether or not a match was found
     return render(request, "portal/team_find.html", {"form": form, "sent": sent})
 
@@ -240,17 +264,19 @@ def submit_lookup(request):
     form = LookupForm(request.POST or None)
     not_registered = False
     if request.method == "POST" and form.is_valid():
-        if _too_many(request, "lookup"):
-            form.add_error(None, "Too many attempts. Please wait a few minutes and try again.")
-        else:
-            team_id = ids.normalize(form.cleaned_data["team_id"])
-            team = Team.objects.filter(team_id=team_id).first() if team_id else None
-            if team:
-                request.session["submit_auth"] = {"pk": team.pk, "at": time.time()}
-                return redirect("submit_upload")
-            if team_id is None:
-                form.add_error("team_id", "That doesn't look like a valid Team ID. Check for typos (IDs look like %s-K7M-2QX)." % settings.TEAM_ID_PREFIX)
+        status, team = _authenticate(request, form.cleaned_data["team_id"], form.cleaned_data["pin"])
+        if status == "ok":
+            request.session["submit_auth"] = {"pk": team.pk, "at": time.time()}
+            return redirect("submit_upload")
+        if status == "malformed":
+            form.add_error("team_id", "That doesn't look like a valid Team ID. Check for typos (IDs look like %s-K7M-2QX)." % settings.TEAM_ID_PREFIX)
             not_registered = True
+        elif status == "unknown":
+            not_registered = True
+        elif status == "bad_pin":
+            form.add_error("pin", "That PIN doesn't match this team. Use the PIN you received when registering.")
+        else:
+            form.add_error(None, _AUTH_MESSAGES[status])
     return render(request, "portal/submit_lookup.html", {"form": form, "milestone": milestone, "not_registered": not_registered})
 
 

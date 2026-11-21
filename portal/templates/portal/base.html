@@ -30,7 +30,7 @@
 <footer>
   <div class="in">
     <span>{{ site.site_title|default:"Team Portal" }}</span>
-    <span>{% if site.support_email %}Need help? <a href="mailto:{{ site.support_email }}">{{ site.support_email }}</a> · {% endif %}<a href="{% url 'team_find' %}">Lost your Team ID?</a></span>
+    <span>{% if site.support_email %}Need help? <a href="mailto:{{ site.support_email }}">{{ site.support_email }}</a> · {% endif %}<a href="{% url 'team_find' %}">Lost your Team ID or PIN?</a></span>
   </div>
 </footer>
 <script src="{% static 'portal/js/app.js' %}" defer></script>

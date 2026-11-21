@@ -56,6 +56,7 @@ class PortalCase(TestCase):
 
     def setUp(self):
         cache.clear()
+        self.pins = {}
         self.batch_a = Batch.objects.create(name="Batch A", max_team_size=5)
         self.batch_b = Batch.objects.create(name="Batch B", max_team_size=3)
         self.milestone = Milestone.objects.create(
@@ -73,11 +74,13 @@ class PortalCase(TestCase):
         resp = client.post(reverse("register_confirm"))
         self.assertRedirects(resp, reverse("register_done"), fetch_redirect_response=False)
         team = Team.objects.get(name=name)
-        return team, client.session["registered"]["pin"]
+        pin = client.session["registered"]["pin"]
+        self.pins[team.pk] = pin
+        return team, pin
 
     def verify(self, team, client=None):
         client = client or self.client
-        resp = client.post(reverse("submit_lookup"), {"team_id": team.team_id})
+        resp = client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": self.pins[team.pk]})
         self.assertRedirects(resp, reverse("submit_upload"), fetch_redirect_response=False)
 
     def upload(self, enrolment, content=None, name="report.pdf", client=None):
@@ -256,15 +259,46 @@ class EditTests(PortalCase):
 
 
 class FindTeamTests(PortalCase):
-    def test_email_sent_only_on_match_but_same_response(self):
-        team, _ = self.register("Alpha", (1,))
+    def test_pin_reissued_and_emailed_to_whole_team(self):
+        team, old_pin = self.register("Alpha", (1, 2))
         mail.outbox.clear()
         r1 = self.client.post(reverse("team_find"), {"enrolment": "e2100001", "email": "S1@example.com"})
-        r2 = self.client.post(reverse("team_find"), {"enrolment": "E2100001", "email": "wrong@example.com"})
         self.assertContains(r1, "Check your inbox")
-        self.assertContains(r2, "Check your inbox")
+        self.assertNotContains(r1, old_pin)
         self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(sorted(mail.outbox[0].to), ["s1@example.com", "s2@example.com"])
         self.assertIn(team.team_id, mail.outbox[0].body)
+        new_pin = [l for l in mail.outbox[0].body.splitlines() if l.startswith("New PIN")][0].split(":")[1].strip()
+        team.refresh_from_db()
+        self.assertTrue(team.check_pin(new_pin))
+        self.assertFalse(team.check_pin(old_pin))
+
+    def test_no_email_or_change_when_details_do_not_match_but_same_response(self):
+        team, pin = self.register("Alpha", (1,))
+        mail.outbox.clear()
+        r = self.client.post(reverse("team_find"), {"enrolment": "E2100001", "email": "wrong@example.com"})
+        self.assertContains(r, "Check your inbox")
+        self.assertEqual(len(mail.outbox), 0)
+        team.refresh_from_db()
+        self.assertTrue(team.check_pin(pin))
+
+    def test_reissue_has_a_cooldown(self):
+        team, _ = self.register("Alpha", (1,))
+        mail.outbox.clear()
+        for _ in range(3):
+            self.client.post(reverse("team_find"), {"enrolment": "E2100001", "email": "s1@example.com"})
+        self.assertEqual(len(mail.outbox), 1)
+
+    def test_reissue_unlocks_a_locked_team(self):
+        team, pin = self.register("Alpha", (1,))
+        for _ in range(10):
+            self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": "000000" if pin != "000000" else "111111"})
+        self.assertContains(self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": pin}), "locked")
+        self.client.post(reverse("team_find"), {"enrolment": "E2100001", "email": "s1@example.com"})
+        team.refresh_from_db()
+        new_pin = [l for l in mail.outbox[-1].body.splitlines() if l.startswith("New PIN")][0].split(":")[1].strip()
+        resp = self.client.post(reverse("submit_lookup"), {"team_id": team.team_id, "pin": new_pin})
+        self.assertRedirects(resp, reverse("submit_upload"), fetch_redirect_response=False)
 
 
 class SubmissionTests(PortalCase):
@@ -275,14 +309,40 @@ class SubmissionTests(PortalCase):
 
     def test_unknown_and_malformed_ids(self):
         c = self.client_class()
-        r = c.post(reverse("submit_lookup"), {"team_id": "nonsense"})
+        r = c.post(reverse("submit_lookup"), {"team_id": "nonsense", "pin": "123456"})
         self.assertContains(r, "valid Team ID")
         self.assertContains(r, "isn't registered")
         valid_but_unused = ids.generate()
-        r = c.post(reverse("submit_lookup"), {"team_id": valid_but_unused})
+        r = c.post(reverse("submit_lookup"), {"team_id": valid_but_unused, "pin": "123456"})
         self.assertContains(r, "isn't registered")
         self.assertContains(r, reverse("register"))
         self.assertEqual(c.get(reverse("submit_upload")).status_code, 302)  # can't skip the ID step
+
+    def test_team_id_alone_is_not_enough(self):
+        c = self.client_class()
+        r = c.post(reverse("submit_lookup"), {"team_id": self.team.team_id})  # no PIN at all
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(c.get(reverse("submit_upload")).status_code, 302)
+        self.assertNotContains(r, "Alpha")
+
+    def test_wrong_pin_is_rejected_without_leaking_team_details(self):
+        c = self.client_class()
+        wrong = "000000" if self.pins[self.team.pk] != "000000" else "111111"
+        r = c.post(reverse("submit_lookup"), {"team_id": self.team.team_id, "pin": wrong})
+        self.assertContains(r, "PIN doesn&#x27;t match")
+        self.assertNotContains(r, "Student 2")
+        self.assertEqual(c.get(reverse("submit_upload")).status_code, 302)
+        self.assertEqual(c.post(reverse("submit_upload"), {"enrolment": "E2100001"}).status_code, 302)  # still signed out
+
+    def test_pin_attempts_are_limited_per_team_across_submit_and_edit(self):
+        pin = self.pins[self.team.pk]
+        wrong = "000000" if pin != "000000" else "111111"
+        for i in range(10):
+            view = "submit_lookup" if i % 2 else "team_edit_login"
+            self.client.post(reverse(view), {"team_id": self.team.team_id, "pin": wrong})
+        r = self.client.post(reverse("submit_lookup"), {"team_id": self.team.team_id, "pin": pin})
+        self.assertContains(r, "locked")
+        self.assertEqual(self.client.get(reverse("submit_upload")).status_code, 302)
 
     def test_upload_requires_team_member_enrolment(self):
         self.verify(self.team)

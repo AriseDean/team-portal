@@ -2,8 +2,8 @@
 
 A small, self-hosted web app for **registering student teams** and **collecting one report per team**.
 
-- Students register a team (size → member rows → review → unique **Team ID** + edit PIN).
-- To submit, they must enter a valid Team ID and an enrolment number that belongs to that team.
+- Students register a team (size → member rows → review → unique **Team ID** + team PIN).
+- To submit, they must sign in with the team's **Team ID and PIN** (so only team members can) and give an enrolment number that belongs to that team.
 - One report per team (PDF / Word). Once any teammate uploads, the team shows as submitted — with team ID,
   name, leader and who uploaded first.
 - Deadline per milestone, with extensions for a team, a single student, or everyone.
@@ -38,7 +38,7 @@ Log in at `/admin/`, then:
 | Remind them | Teams/Milestones → *Email a reminder…* |
 | Download everything | Milestones → *Download all reports (ZIP)* (latest versions + `_manifest.csv`) |
 | Spreadsheet of status | Milestones → *Export submission status (CSV)* |
-| Fix a team / reset a PIN | Teams → open it, or action *Reset edit PIN* |
+| Fix a team / reset a PIN | Teams → open it, or action *Reset team PIN* |
 | Let a team upload again | Delete its Submission (Submissions) — or leave *allow re-upload* on |
 | Next milestone | Add a Milestone and tick *Active* (only one is active; students always submit to it) |
 
@@ -55,7 +55,7 @@ Without `EMAIL_*`, emails are printed to the container log (`docker compose logs
 
 - **Team IDs** look like `TM-K7M-2QX`: 5 random characters plus a check character, alphabet without look-alikes
   (0/O, 1/I/L). Single typos and swaps are rejected before the database is even queried.
-- **Editing** needs the Team ID + 6-digit PIN (hashed in the database; 10 wrong PINs lock editing for an hour).
+- **The PIN** (6 digits, hashed in the database) is needed to submit and to edit. 10 wrong PINs lock a team for an hour; any member can get a new PIN emailed to the whole team via “Lost your Team ID or PIN?” (once per 15 minutes).
 - **Uploads** are validated by extension, size and file content, stored outside any public path, and downloadable only by staff.
   One `Submission` row per (milestone, team) is enforced by a database constraint, so simultaneous uploads can't create duplicates.
 - **Rate limiting** on lookups is deliberately generous (a campus often shares one public IP).

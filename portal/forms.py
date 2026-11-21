@@ -242,18 +242,22 @@ class TeamBundle:
 
 
 class LookupForm(forms.Form):
+    """Team ID + PIN: proves the person submitting belongs to the team."""
+
     team_id = forms.CharField(max_length=40, label="Team ID")
+    pin = forms.CharField(max_length=12, label="Team PIN")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["team_id"].widget.attrs.update(
             {"placeholder": "TM-K7M-2QX", "class": "upper mono", "autocomplete": "off", "spellcheck": "false", "autofocus": True}
         )
+        self.fields["pin"].widget.attrs.update({"placeholder": "6-digit PIN", "inputmode": "numeric", "autocomplete": "off"})
 
 
 class EditLoginForm(forms.Form):
     team_id = forms.CharField(max_length=40, label="Team ID")
-    pin = forms.CharField(max_length=12, label="Edit PIN")
+    pin = forms.CharField(max_length=12, label="Team PIN")
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
